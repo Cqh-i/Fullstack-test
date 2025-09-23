@@ -5,7 +5,7 @@ plugins {
 	id("io.spring.dependency-management") version "1.1.7"
 }
 
-group = "com.greg.respiroc"
+group = "com.qunhui.chen"
 version = "0.0.1-SNAPSHOT"
 description = "fullstack-test"
 

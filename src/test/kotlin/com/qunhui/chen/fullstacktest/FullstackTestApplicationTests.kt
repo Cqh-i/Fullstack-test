@@ -1,4 +1,4 @@
-package com.greg.respiroc.fullstacktest
+package com.qunhui.chen.fullstacktest
 
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest

@@ -1,9 +1,14 @@
-package com.greg.respiroc.fullstacktest
+package com.qunhui.chen.fullstacktest
 
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
+
+/**
+ * @author Qunhui Chen
+ * @date 2025/9/23 22:58
+ */
 
 private val log = LoggerFactory.getLogger(FullstackTestApplication::class.java)
 
