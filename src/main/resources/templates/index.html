@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Products</title>
+    <link rel="stylesheet" href="https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/styles/webawesome.css" />
+    <script type="module" src="https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/webawesome.loader.js"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.0"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; margin: 24px; }
+        .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .btn { padding: 6px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; cursor: pointer; }
+        .btn.primary { background: #111827; color: #fff; border-color: #111827; }
+        .muted { color: #6b7280; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th, td { border-bottom: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; vertical-align: top; }
+        thead th { background: #f8fafc; }
+        img.thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid #eee; }
+        .indicator[hidden] { display: none; }
+    </style>
+</head>
+<body>
+
+<h2 style="margin:0 0 8px 0">Products</h2>
+<div class="row">
+    <button class="btn"
+            hx-get="/products"
+            hx-target="#products"
+            hx-swap="outerHTML"
+            hx-indicator="#spinner">
+        Load products
+    </button>
+    <span id="spinner" class="indicator muted" hidden>Loading…</span>
+    <span class="muted">Tip: Click “Load products” to fetch from the database.</span>
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th style="width:160px">Product&nbsp;ID</th>
+        <th>Title</th>
+        <th style="width:120px">Min&nbsp;Price</th>
+        <th style="width:160px">Updated</th>
+        <th style="width:96px">Image</th>
+    </tr>
+    </thead>
+
+    <!-- 初始不加载；提示用户点击按钮 -->
+    <tbody id="products">
+    <tr>
+        <td colspan="5" class="muted">No data yet. Click “Load products”.</td>
+    </tr>
+    </tbody>
+</table>
+
+<!-- 表单默认隐藏；在表格第一次加载成功后再显示 -->
+<div id="new-form" hidden>
+    <h3 style="margin:24px 0 8px 0">Add product</h3>
+    <form class="row"
+          hx-post="/addProducts"
+          hx-target="#products"
+          hx-swap="outerHTML">
+        <input type="number" name="productId" placeholder="Unique product_id" required/>
+        <input type="text" name="title" placeholder="Title" required/>
+        <input type="text" name="vendor" placeholder="Vendor (optional)"/>
+        <button class="btn primary" type="submit">Create</button>
+        <span class="muted">The table will update without a full page reload.</span>
+    </form>
+</div>
+
+<script>
+    // 当 #products 被 htmx 替换（首次加载/后续刷新）后，展示“Add product”表单
+    document.body.addEventListener('htmx:afterSwap', (e) => {
+        if (e.detail && e.detail.target && e.detail.target.id === 'products') {
+            document.getElementById('new-form').hidden = false;
+        }
+    });
+
+    // 统一错误提示
+    document.body.addEventListener('htmx:responseError', (e) => {
+        alert('Request failed: ' + e.detail.xhr.status);
+    });
+
+    // 1) 已展开时：在捕获阶段拦截，彻底阻止 htmx 发送请求
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('button.toggle-variants');
+        if (!btn) return;
+
+        if (btn.dataset.opened === 'true') {
+            const row = document.getElementById('variants-' + btn.dataset.pid);
+            if (row) row.remove();
+            btn.dataset.opened = 'false';
+            btn.textContent = '显示规格';
+
+            // 关键：三连阻断，确保 htmx 收不到这次点击
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+        }
+    }, true); // ← 捕获阶段
+
+    // 2) 首次展开：请求完成后把按钮文案切到“隐藏规格”
+    document.body.addEventListener('htmx:afterRequest', function (e) {
+        const el = e.target;
+        if (!el.matches || !el.matches('button.toggle-variants')) return;
+
+        const xhr = e.detail && e.detail.xhr;
+        if (xhr && xhr.status >= 200 && xhr.status < 400) {
+            el.dataset.opened = 'true';
+            el.textContent = '隐藏规格';
+        }
+    });
+</script>
+</body>
+</html>

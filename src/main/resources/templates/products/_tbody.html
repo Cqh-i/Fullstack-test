@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="products_tbody (items)">
+    <tbody id="products">
+    <tr th:if="${#lists.isEmpty(items)}">
+        <td colspan="5" class="muted">No products found.</td>
+    </tr>
+
+    <tr th:each="p : ${items}" th:id="|row-${p.productId}|">
+        <td th:text="${p.productId}">123</td>
+        <td>
+            <div class="row" style="gap:8px; align-items:center">
+                <div th:text="${p.title}">Title</div>
+
+                <!-- 展开/收起规格；首次点击加载并插入到当前行后面，再次点击仅前端移除 -->
+                <button class="btn toggle-variants"
+                        th:attr="
+          hx-get=@{/products/{id}/variants(id=${p.productId})},
+          hx-target='closest tr',
+          hx-swap='afterend',
+          hx-indicator=${'#spin-' + p.productId},
+          data-pid=${p.productId}
+        ">
+                    显示规格
+                </button>
+
+                <span th:id="|spin-${p.productId}|" class="indicator muted" hidden>Loading…</span>
+            </div>
+
+            <div class="muted" th:text="${p.vendor}">Vendor</div>
+        </td>
+        <td th:text="${p.minPrice != null ? #numbers.formatDecimal(p.minPrice,1,'COMMA',2,'POINT') : '-'}">-</td>
+        <td th:text="${p.updatedAt != null ? #temporals.format(p.updatedAt,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+        <td>
+            <img th:if="${p.imageUrl != null}" th:src="${p.imageUrl}" class="thumb" alt="img"/>
+            <span class="muted" th:if="${p.imageUrl == null}">—</span>
+        </td>
+    </tr>
+
+    </tbody>
+</th:block>
+</html>

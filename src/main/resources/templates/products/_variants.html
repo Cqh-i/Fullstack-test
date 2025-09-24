@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="variants_rows (productId, rows)">
+    <tr th:id="|variants-${productId}|">
+        <td colspan="5" style="background:#fafafa">
+            <table style="width:100%; border-collapse:collapse">
+                <thead>
+                <tr style="background:#f3f4f6">
+                    <th style="padding:6px 8px">Option1</th>
+                    <th style="padding:6px 8px">Option2</th>
+                    <th style="padding:6px 8px">Option3</th>
+                    <th style="padding:6px 8px">SKU</th>
+                    <th style="padding:6px 8px">Price</th>
+                    <th style="padding:6px 8px">Compare</th>
+                    <th style="padding:6px 8px">Available</th>
+                    <th style="padding:6px 8px">Image</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="v : ${rows}">
+                    <td th:text="${v.option1}">-</td>
+                    <td th:text="${v.option2}">-</td>
+                    <td th:text="${v.option3}">-</td>
+                    <td th:text="${v.sku}">-</td>
+                    <td th:text="${v.price != null ? #numbers.formatDecimal(v.price,1,'COMMA',2,'POINT') : '-'}">-</td>
+                    <td th:text="${v.comparePrice != null ? #numbers.formatDecimal(v.comparePrice,1,'COMMA',2,'POINT') : '-'}">
+                        -
+                    </td>
+                    <td>
+                        <span th:text="${v.available ? 'Yes' : 'No'}"></span>
+                    </td>
+                    <td>
+                        <img th:if="${v.imageUrl != null}" th:src="${v.imageUrl}" class="thumb" alt="img"/>
+                        <span class="muted" th:if="${v.imageUrl == null}">—</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <!-- 前端直接收起，不请求服务器 -->
+            <div style="margin-top:8px">
+                <button class="btn" th:attr="onclick=|document.getElementById('variants-${productId}').remove()|">
+                    Hide
+                </button>
+            </div>
+        </td>
+    </tr>
+</th:block>
+</html>
