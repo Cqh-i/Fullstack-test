@@ -3,6 +3,7 @@ package com.qunhui.chen.fullstacktest
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
+import org.springframework.scheduling.annotation.EnableScheduling
 
 
 /**
@@ -12,7 +13,7 @@ import org.springframework.boot.runApplication
 
 private val log = LoggerFactory.getLogger(FullstackTestApplication::class.java)
 
-
+@EnableScheduling
 @SpringBootApplication
 class FullstackTestApplication
 

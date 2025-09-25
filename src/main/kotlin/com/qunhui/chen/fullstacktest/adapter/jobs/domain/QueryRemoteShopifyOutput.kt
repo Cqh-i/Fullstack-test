@@ -1,13 +1,13 @@
-package com.qunhui.chen.fullstacktest.jobs.domain
+package com.qunhui.chen.fullstacktest.adapter.jobs.domain
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import java.time.OffsetDateTime
+import java.math.BigDecimal
 
 /**
  * @author Qunhui Chen
  * @date 2025/9/23 23:12
  */
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
-import java.time.OffsetDateTime
-import java.math.BigDecimal
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class RemoteProduct(
     val id: Long,                                // → products.product_id
@@ -34,14 +34,13 @@ data class RemoteVariant(
     val option1: String? = null,                 // → variants.option1/2/3
     val option2: String? = null,
     val option3: String? = null,
-    val created_at: OffsetDateTime? = null,      // 若你表里要填，可对上 variants.created_at
+    val created_at: OffsetDateTime? = null,      // variants.created_at
     val updated_at: OffsetDateTime? = null,      // → variants.updated_at
     val featured_image: RemoteImage? = null      // 用来提取 image_url
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class RemoteOption(
-    val id: Long? = null,
     val name: String? = null,
     val position: Int? = null,
     val values: List<String> = emptyList()

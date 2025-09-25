@@ -3,40 +3,121 @@
 <th:block th:fragment="products_tbody (items)">
     <tbody id="products">
     <tr th:if="${#lists.isEmpty(items)}">
-        <td colspan="5" class="muted">No products found.</td>
+        <td colspan="9" class="muted">No products found.</td>
     </tr>
 
     <tr th:each="p : ${items}" th:id="|row-${p.productId}|">
-        <td th:text="${p.productId}">123</td>
+        <td th:text="${p.productId}">ProductId</td>
         <td>
             <div class="row" style="gap:8px; align-items:center">
                 <div th:text="${p.title}">Title</div>
-
-                <!-- 展开/收起规格；首次点击加载并插入到当前行后面，再次点击仅前端移除 -->
-                <button class="btn toggle-variants"
-                        th:attr="
-          hx-get=@{/products/{id}/variants(id=${p.productId})},
-          hx-target='closest tr',
-          hx-swap='afterend',
-          hx-indicator=${'#spin-' + p.productId},
-          data-pid=${p.productId}
-        ">
-                    显示规格
-                </button>
-
                 <span th:id="|spin-${p.productId}|" class="indicator muted" hidden>Loading…</span>
             </div>
+        </td>
 
+        <td>
             <div class="muted" th:text="${p.vendor}">Vendor</div>
         </td>
+
+        <td th:text="${p.productType != null ? p.productType : '-'}">ProductType</td>
+
+        <td>
+            <div class="tags-wrap"
+                 th:if="${p.tags != null and !#lists.isEmpty(p.tags)}"
+                 th:with="
+         count=${#lists.size(p.tags)},
+         shown=${count > 4 ? p.tags.subList(0,4) : p.tags},
+         more=${count - #lists.size(shown)}
+       ">
+                <span class="tag-pill" th:each="t : ${shown}" th:text="${t}">Tag</span>
+                <span class="tag-pill" th:if="${more > 0}"
+                      th:title="${#strings.listJoin(p.tags, ', ')}"
+                      th:text="|+${more}|">+N</span>
+            </div>
+
+            <span class="muted" th:if="${p.tags == null or #lists.isEmpty(p.tags)}">—</span>
+        </td>
+
+
+
         <td th:text="${p.minPrice != null ? #numbers.formatDecimal(p.minPrice,1,'COMMA',2,'POINT') : '-'}">-</td>
         <td th:text="${p.updatedAt != null ? #temporals.format(p.updatedAt,'yyyy-MM-dd HH:mm') : '-'}">-</td>
         <td>
             <img th:if="${p.imageUrl != null}" th:src="${p.imageUrl}" class="thumb" alt="img"/>
             <span class="muted" th:if="${p.imageUrl == null}">—</span>
         </td>
-    </tr>
 
+        <td>
+            <wa-button class="toggle-variants"
+                       variant="outline"
+                       th:attr="
+                         hx-get=@{/products/{id}/variants(id=${p.productId})},
+                         hx-target='closest tr',
+                         hx-swap='afterend',
+                         hx-indicator=${'#spin-' + p.productId},
+                         data-pid=${p.productId}
+           ">
+                显示规格
+            </wa-button>
+        </td>
+    </tr>
     </tbody>
+
+    <!-- ===== 分页（OOB 更新 index.html 里的 #pager） ===== -->
+    <nav id="pager"
+         class="wa-pagination"
+         hx-swap-oob="true"
+         aria-label="Pagination"
+         th:with="
+         p=${page}?:1,
+         s=${size}?:10,
+         total=${total}?:0,
+         tp=${totalPages}?:1,
+         start=${p > 3 ? p - 2 : 1},
+         end=${p + 2 < tp ? p + 2 : tp},
+         q=${param.search != null ? param.search[0] : null}
+       ">
+
+        <!-- Prev -->
+        <a class="wa-page"
+           th:classappend="${p <= 1} ? ' wa-disabled' : ''"
+           th:attr="
+         hx-get=@{/products(page=${p-1},size=${s},search=${q})},
+         hx-target='#products',
+         hx-swap='outerHTML',
+         hx-indicator='#spinner'
+       ">Prev</a>
+
+        <!-- 左省略号 -->
+        <span class="wa-ellipsis" th:if="${start > 1}">…</span>
+
+        <!-- 数字页 -->
+        <a class="wa-page"
+           th:each="i : ${#numbers.sequence(start, end)}"
+           th:classappend="${i == p} ? ' wa-active' : ''"
+           th:attr="
+         hx-get=@{/products(page=${i},size=${s},search=${q})},
+         hx-target='#products',
+         hx-swap='outerHTML',
+         hx-indicator='#spinner'
+       ">[[${i}]]</a>
+
+        <!-- 右省略号 -->
+        <span class="wa-ellipsis" th:if="${end < tp}">…</span>
+
+        <!-- Next -->
+        <a class="wa-page"
+           th:classappend="${p >= tp} ? ' wa-disabled' : ''"
+           th:attr="
+         hx-get=@{/products(page=${p+1},size=${s},search=${q})},
+         hx-target='#products',
+         hx-swap='outerHTML',
+         hx-indicator='#spinner'
+       ">Next</a>
+
+        <!-- 统计（可选） -->
+        <span class="muted" style="margin-left:8px"
+              th:text="|Total: ${total}, Pages: ${tp}|">Total: 0, Pages: 0</span>
+    </nav>
 </th:block>
 </html>

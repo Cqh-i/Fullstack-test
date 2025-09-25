@@ -5,6 +5,8 @@
     <title>Products</title>
     <link rel="stylesheet" href="https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/styles/webawesome.css" />
     <script type="module" src="https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/webawesome.loader.js"></script>
+
+
     <script src="https://unpkg.com/htmx.org@2.0.0"></script>
     <style>
         body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; margin: 24px; }
@@ -17,41 +19,75 @@
         thead th { background: #f8fafc; }
         img.thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid #eee; }
         .indicator[hidden] { display: none; }
+
+        .wa-page { padding:4px 10px; border:1px solid #d1d5db; border-radius:6px; text-decoration:none; cursor:pointer; }
+        .wa-page.wa-active { background:#111827; color:#fff; border-color:#111827; }
+        .wa-page.wa-disabled { opacity:.5; pointer-events:none; }
+        .wa-ellipsis { padding:0 4px; color:#6b7280; }
+        /* index.html 的 <style> 里追加 */
+        .pager-wrap { display:flex; justify-content:center; margin-top:8px; }
+        .wa-pagination { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-top:12px;}
+        .tags-wrap wa-badge { margin-right: 6px; margin-bottom: 4px; }
+        .tag-pill {
+            display:inline-block;
+            padding:2px 8px;
+            margin:2px 6px 2px 0;
+            font-size:12px; line-height:18px;
+            border-radius:9999px;
+            background:#f1f5f9;           /* 背景浅灰蓝 */
+            color:#0f172a;                 /* 深色文字 */
+            border:1px solid #e2e8f0;      /* 细边框 */
+            white-space:nowrap;
+        }
+
     </style>
 </head>
 <body>
 
 <h2 style="margin:0 0 8px 0">Products</h2>
 <div class="row">
-    <button class="btn"
+    <wa-button
+            variant="brand"
             hx-get="/products"
             hx-target="#products"
             hx-swap="outerHTML"
             hx-indicator="#spinner">
         Load products
-    </button>
+    </wa-button>
     <span id="spinner" class="indicator muted" hidden>Loading…</span>
     <span class="muted">Tip: Click “Load products” to fetch from the database.</span>
 </div>
+
 
 <table>
     <thead>
     <tr>
         <th style="width:160px">Product&nbsp;ID</th>
-        <th>Title</th>
+        <th style="width:160px">Title</th>
+        <th style="width:160px">Vendor</th>
+        <th style="width:160px">Product Type</th>
+        <th style="width:160px">Tags</th>
         <th style="width:120px">Min&nbsp;Price</th>
         <th style="width:160px">Updated</th>
         <th style="width:96px">Image</th>
+        <th style="width:160px">Action</th>
     </tr>
     </thead>
 
     <!-- 初始不加载；提示用户点击按钮 -->
     <tbody id="products">
     <tr>
-        <td colspan="5" class="muted">No data yet. Click “Load products”.</td>
+        <td colspan="9" class="muted">No data yet. Click “Load products”.</td>
     </tr>
     </tbody>
 </table>
+
+<!-- 分页条占位：首次为空，等片段通过 OOB 更新 -->
+<!-- index.html -->
+<div class="pager-wrap">
+    <nav id="pager" class="wa-pagination muted" aria-label="Pagination"></nav>
+</div>
+
 
 <!-- 表单默认隐藏；在表格第一次加载成功后再显示 -->
 <div id="new-form" hidden>
@@ -81,35 +117,42 @@
         alert('Request failed: ' + e.detail.xhr.status);
     });
 
-    // 1) 已展开时：在捕获阶段拦截，彻底阻止 htmx 发送请求
-    document.addEventListener('click', function (e) {
-        const btn = e.target.closest('button.toggle-variants');
-        if (!btn) return;
+    (function () {
+        const isToggler = (el) => el instanceof Element && el.classList.contains('toggle-variants');
 
-        if (btn.dataset.opened === 'true') {
-            const row = document.getElementById('variants-' + btn.dataset.pid);
-            if (row) row.remove();
-            btn.dataset.opened = 'false';
-            btn.textContent = '显示规格';
+        // 1) 已展开时：在捕获阶段拦截，彻底阻止 htmx 发送请求
+        document.addEventListener('click', function (e) {
+            const path = (typeof e.composedPath === 'function') ? e.composedPath() : [];
+            // 优先从 composedPath 里找（兼容 Shadow DOM），找不到再 fallback 到 closest
+            let btn = path.find((n) => isToggler(n));
+            if (!btn && e.target && e.target.closest) btn = e.target.closest('.toggle-variants');
+            if (!btn) return;
 
-            // 关键：三连阻断，确保 htmx 收不到这次点击
-            e.preventDefault();
-            e.stopPropagation();
-            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-        }
-    }, true); // ← 捕获阶段
+            if (btn.dataset.opened === 'true') {
+                const row = document.getElementById('variants-' + btn.dataset.pid);
+                if (row) row.remove();
+                btn.dataset.opened = 'false';
+                btn.textContent = '显示规格';
 
-    // 2) 首次展开：请求完成后把按钮文案切到“隐藏规格”
-    document.body.addEventListener('htmx:afterRequest', function (e) {
-        const el = e.target;
-        if (!el.matches || !el.matches('button.toggle-variants')) return;
+                // 三连阻断，避免 htmx 仍然发送请求
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+            }
+        }, true); // ← 用捕获阶段
 
-        const xhr = e.detail && e.detail.xhr;
-        if (xhr && xhr.status >= 200 && xhr.status < 400) {
-            el.dataset.opened = 'true';
-            el.textContent = '隐藏规格';
-        }
-    });
+        // 2) 首次展开：请求完成后把按钮文案切到“隐藏规格”
+        document.body.addEventListener('htmx:afterRequest', function (e) {
+            const el = e.target;
+            if (!isToggler(el)) return;
+
+            const xhr = e.detail && e.detail.xhr;
+            if (xhr && xhr.status >= 200 && xhr.status < 400) {
+                el.dataset.opened = 'true';
+                el.textContent = '隐藏规格';
+            }
+        });
+    })();
 </script>
 </body>
 </html>

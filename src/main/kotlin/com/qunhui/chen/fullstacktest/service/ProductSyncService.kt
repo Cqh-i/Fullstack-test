@@ -1,72 +1,69 @@
 package com.qunhui.chen.fullstacktest.service
 
-/**
- * @author Qunhui Chen
- * @date 2025/9/24 00:15
- */
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.qunhui.chen.fullstacktest.jobs.domain.ProductList
-import com.qunhui.chen.fullstacktest.jobs.domain.RemoteProduct
+import com.qunhui.chen.fullstacktest.adapter.jobs.domain.ProductList
+import com.qunhui.chen.fullstacktest.adapter.jobs.domain.RemoteProduct
 import com.qunhui.chen.fullstacktest.repo.ProductRepo
 import com.qunhui.chen.fullstacktest.repo.ProductUpsertCmd
 import com.qunhui.chen.fullstacktest.repo.VariantRepo
 import com.qunhui.chen.fullstacktest.repo.VariantUpsertCmd
 import org.slf4j.LoggerFactory
-import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionTemplate
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 
+/**
+ * @author Qunhui Chen
+ * @date 2025/9/24 00:15
+ */
 @Service
 class ProductSyncService(
     private val productRepo: ProductRepo,
-    private val variantRepo: VariantRepo
+    private val variantRepo: VariantRepo,
+    private val mapper: ObjectMapper,
+    private val transactionTemplate: TransactionTemplate
+
+
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
     private val http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build()
-    private val mapper = jacksonObjectMapper()
 
-    @Scheduled(initialDelayString = "PT0S", fixedDelayString = "PT15M")
-    @Transactional
     fun sync() {
         val start = System.currentTimeMillis()
-        try {
-            val products = fetchProducts()
-            if (products.isEmpty()) {
-                log.warn("Fetch returned empty list; skip deletion to be safe.")
-                return
-            }
+        val products = fetchProducts()
+        if (products.isEmpty()) {
+            log.warn("Fetch returned empty list; skip deletion to be safe.")
+            return
+        }
 
-            // 以 updated_at 优先排序，缺失则用 created_at；取最新 50
-            val top50 = products.sortedByDescending { it.updated_at ?: it.created_at }.take(50)
+        // 以 updated_at 优先排序，缺失则用 created_at；取最新 50
+        val top50 = products.sortedByDescending { it.updated_at ?: it.created_at }.take(50)
 
-            // upsert products
+        val productCmds = top50.map { p ->
+            ProductUpsertCmd(
+                productId = p.id,
+                title = p.title,
+                vendor = p.vendor,
+                productType = p.product_type,
+                tags = p.tags,
+                optionsJson = mapper.writeValueAsString(p.options),
+                createdAt = p.created_at,
+                updatedAt = p.updated_at
+            )
+        }
+        val variantCmds = buildList {
             top50.forEach { p ->
-                productRepo.upsert(
-                    ProductUpsertCmd(
-                        productId = p.id,
-                        title = p.title,
-                        vendor = p.vendor,
-                        productType = p.product_type,
-                        tags = p.tags,
-                        optionsJson = mapper.writeValueAsString(p.options),
-                        createdAt = p.created_at,
-                        updatedAt = p.updated_at
-                    )
-                )
-
-                // upsert variants
                 p.variants.forEach { v ->
-                    variantRepo.upsert(
+                    add(
                         VariantUpsertCmd(
                             variantId = v.id,
-                            productId = v.product_id,          // 我们表里用“外部 product_id”做关联字段
-                            title = v.title,
+                            productId = v.product_id,
                             sku = v.sku,
                             imageUrl = v.featured_image?.src,
                             price = v.price,
@@ -80,21 +77,22 @@ class ProductSyncService(
                     )
                 }
             }
+        }
+        val keepIds = top50.map { it.id }
+
+        transactionTemplate.executeWithoutResult {
+            productCmds.forEach { productRepo.upsert(it) }
+            variantCmds.forEach { variantRepo.upsert(it) }
 
             // 清理：只保留这 50 个 product（以及它们的 variants）
-            val keepIds = top50.map { it.id }
-            variantRepo.deleteVariantsNotInProducts(keepIds, minGuard = 10) // 保护：集合太小不删
+            variantRepo.deleteVariantsNotInProducts(keepIds, minGuard = 10)
             productRepo.deleteNotIn(keepIds, minGuard = 10)
-
-            val took = System.currentTimeMillis() - start
-            log.info(
-                "Sync OK: kept={}, upsertedProducts={}, upsertedVariants~{}, took={}ms",
-                keepIds.size, top50.size, top50.sumOf { it.variants.size }, took
-            )
-        } catch (e: Exception) {
-            log.error("Sync failed", e)
-            // 事务回滚，由 @Transactional 保证
         }
+
+        log.info(
+            "Sync OK: kept={}, upsertedProducts={}, upsertedVariants~{}, took={}ms",
+            keepIds.size, top50.size, variantCmds.size, System.currentTimeMillis() - start
+        )
     }
 
     private fun fetchProducts(): List<RemoteProduct> {
@@ -110,8 +108,9 @@ class ProductSyncService(
         // 两种结构都兼容：{ products:[...] } 或直接是 [...]
         return try {
             mapper.readValue<ProductList>(body).products
-        } catch (_: Exception) {
-            mapper.readValue<List<RemoteProduct>>(body)
+        } catch (e: Exception) {
+            log.error("failed to parse as ProductList, try as List<RemoteProduct>", e);
+            throw e
         }
     }
 }

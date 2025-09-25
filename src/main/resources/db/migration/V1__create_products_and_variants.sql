@@ -15,7 +15,6 @@ CREATE TABLE IF NOT EXISTS variants (
     id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     variant_id     BIGINT UNIQUE NOT NULL,
     product_id     BIGINT NOT NULL,
-    title          TEXT NOT NULL,
     sku            TEXT,
     image_url      TEXT,
     price          NUMERIC(10,2),
