@@ -40,9 +40,15 @@
             white-space:nowrap;
         }
 
+        .page-wrap {
+            width: 80%;
+            margin: 24px auto;   /* 上下 24px 外边距 + 水平居中 */
+        }
+
     </style>
 </head>
 <body>
+<div class="page-wrap">
 
 <h2 style="margin:0 0 8px 0">Products</h2>
 <div class="row">
@@ -90,27 +96,47 @@
 
 
 <!-- 表单默认隐藏；在表格第一次加载成功后再显示 -->
-<div id="new-form" hidden>
-    <h3 style="margin:24px 0 8px 0">Add product</h3>
-    <form class="row"
-          hx-post="/addProducts"
-          hx-target="#products"
-          hx-swap="outerHTML">
-        <input type="number" name="productId" placeholder="Unique product_id" required/>
-        <input type="text" name="title" placeholder="Title" required/>
-        <input type="text" name="vendor" placeholder="Vendor (optional)"/>
-        <button class="btn primary" type="submit">Create</button>
-        <span class="muted">The table will update without a full page reload.</span>
-    </form>
+<div id="create-form" hidden>
+    <div class="muted" style="margin:12px 0">Scroll to load the create form…</div>
 </div>
 
 <script>
-    // 当 #products 被 htmx 替换（首次加载/后续刷新）后，展示“Add product”表单
+    // 仅第一次表格渲染后加载表单
+    let formLoaded = false;
     document.body.addEventListener('htmx:afterSwap', (e) => {
-        if (e.detail && e.detail.target && e.detail.target.id === 'products') {
-            document.getElementById('new-form').hidden = false;
+        if (formLoaded) return;
+        if (e.target && e.target.id === 'products') {
+            formLoaded = true;
+            const host = document.getElementById('create-form');
+            host.hidden = false;
+            htmx.ajax('GET', '/products/form', { target: host, swap: 'outerHTML' });
         }
     });
+</script>
+
+
+
+<script>
+    // 当 #products 被 htmx 替换（首次加载/后续刷新）后，展示“Add product”表单
+    (function () {
+        let formLoaded = false;
+
+        document.body.addEventListener('htmx:afterSwap', function (e) {
+            // afterSwap 的真正目标是 e.detail.target
+            const swapped = e.detail && e.detail.target;
+            if (!swapped || swapped.id !== 'products' || formLoaded) return;
+
+            formLoaded = true;
+            const host = document.getElementById('create-form');
+            host.hidden = false;
+
+            // 用选择器字符串作为 target，更兼容
+            htmx.ajax('GET', '/products/form', {
+                target: '#create-form',
+                swap: 'outerHTML'
+            });
+        });
+    })();
 
     // 统一错误提示
     document.body.addEventListener('htmx:responseError', (e) => {
@@ -154,5 +180,6 @@
         });
     })();
 </script>
+</div>
 </body>
 </html>

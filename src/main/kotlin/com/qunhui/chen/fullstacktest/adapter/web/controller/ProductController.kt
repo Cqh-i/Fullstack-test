@@ -58,39 +58,6 @@ class ProductController(
         return "products/_variants :: variants_rows"
     }
 
-
-    /**
-     * 手工新增一条 product（仅 title/vendor），product_id 由用户提供
-     * 成功后返回最新 tbody 片段
-     */
-    @PostMapping("/addProducts")
-    fun create(
-        @RequestParam productId: Long,
-        @RequestParam title: String,
-        @RequestParam(required = false) vendor: String?,
-        @RequestParam(required = false) search: String?,
-        model: Model
-    ):
-
-            String {
-        // UPSERT：若与同步结果冲突会更新标题/供演示
-        productRepo.upsert(
-            ProductUpsertCmd(
-                productId = productId,
-                title = title,
-                vendor = vendor,
-                productType = null,
-                tags = emptyList(),
-                optionsJson = null,
-                createdAt = null,
-                updatedAt = java.time.OffsetDateTime.now()
-            )
-        )
-        val items = productRepo.listForView(limit = 50, search = search)
-        model.addAttribute("items", items)
-        return "products/_tbody :: products_tbody"
-    }
-
     /**
      * 删除：先删 variants，再删 product（我们当前没有 FK，需要手工保证一致性）
      */

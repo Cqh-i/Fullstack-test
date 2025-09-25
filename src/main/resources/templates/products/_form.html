@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="create_form">
+    <style>
+        /* 仅作用于此片段的轻量样式 */
+        .help{color:var(--wa-color-muted,#6b7280);font-size:12px}
+        .empty-row td{color:#6b7280;text-align:center}
+        .sticky-head thead th{position:sticky;top:0;z-index:1;background:var(--wa-color-surface,#fff)}
+        .zebra tbody tr:nth-child(odd){background:#fafafa}
+
+        /* 1) 顶部主标题更醒目 */
+        .form-title{
+            font-weight:700;font-size:18px;line-height:1.3;
+            color:#111827;display:flex;align-items:center;gap:10px;
+            margin:2px 0 10px 0;
+        }
+        .form-title .bar{
+            width:6px;height:18px;border-radius:4px;background:#111827;opacity:.9
+        }
+
+        /* 2) 分段标题条（小节标题更明显） */
+        .section-title{
+            font-weight:600;font-size:13px;color:#111827;
+            background:#f8fafc;border:1px solid #e5e7eb;
+            padding:8px 12px;border-radius:10px;margin:2px 0 8px 0;
+        }
+
+        /* 3) 片段上外边距（由此片段控制，不改变居中/宽度） */
+        #create-product-card{ margin-top:16px }
+
+        /* 4) 右下角固定操作栏 */
+        .sticky-actions{
+            position:static;bottom:0;display:flex;justify-content:flex-end;gap:10px;
+            background:linear-gradient(180deg,rgba(255,255,255,0) 0%, rgba(255,255,255,1) 24px);
+            padding-top:8px;border-top:1px solid #e5e7eb
+        }
+
+        /* 横向滚动容器，防止超出卡片 */
+        .variants-scroll{
+            width:100%;
+            overflow-x:auto;
+            -webkit-overflow-scrolling:touch;
+            padding-bottom:6px;   /* 给滚动条留点空隙，美观些 */
+        }
+
+        /* 让表格在窄屏时出现横向滚动，而不是把父容器顶破 */
+        .variants-scroll .wa-table{
+            min-width: 1100px;    /* 按你列数设置一个合理的 min-width */
+        }
+
+        /* 缩小表格内 Web Awesome 字段的最小宽度 */
+        .variants-scroll td > wa-input{ min-width:120px; display:block; }
+        .variants-scroll td:nth-child(1) > wa-input,
+        .variants-scroll td:nth-child(2) > wa-input,
+        .variants-scroll td:nth-child(3) > wa-input{ min-width:100px; }   /* 三个选项列更窄 */
+        .variants-scroll td:nth-child(9) > wa-input{ min-width:200px; }   /* Image URL 列稍宽些 */
+
+        /* 删除按钮列固定宽度，避免把整行撑大 */
+        .variants-scroll th:nth-child(10),
+        .variants-scroll td:nth-child(10){ width:64px; white-space:nowrap; }
+
+        /* Available 列居中且不撑宽 */
+        .variants-scroll td:nth-child(8){ text-align:center; min-width:90px; }
+    </style>
+
+    <wa-card id="create-product-card" class="wa-stack" style="padding:14px">
+        <!-- 主标题 -->
+        <div class="form-title">
+            <span class="bar"></span>
+            <span>Add product</span>
+        </div>
+
+        <form id="create-product-form"
+              hx-post="/addProducts"
+              hx-target="#products"
+              hx-swap="outerHTML"
+              hx-indicator="#create-spinner"
+              onsubmit="return validateProductForm()"
+              hx-on="htmx:afterRequest:
+            if (event.detail.successful) {
+              this.reset();
+              resetVariantTable();
+              showCreateToast();
+            }"
+              class="wa-stack">
+
+            <!-- Basic info -->
+            <div class="section-title">Basic info</div>
+            <div class="wa-grid wa-grid-cols-2 wa-gap-3">
+                <wa-input name="productId" type="number" required label="Product ID (unique)"></wa-input>
+                <wa-input name="title" required label="Title"></wa-input>
+                <wa-input name="vendor" label="Vendor"></wa-input>
+                <wa-input name="productType" label="Product Type"></wa-input>
+
+                <wa-input class="wa-col-span-2"
+                          name="tagsText"
+                          label="Tags"
+                          placeholder="e.g. gym, everyday-collection">
+                    <div slot="helper" class="help">Comma separated. Example: <code>gym, everyday-collection</code></div>
+                </wa-input>
+            </div>
+
+            <!-- Options -->
+            <div class="section-title">Options (up to 3)</div>
+            <div class="wa-grid wa-grid-cols-3 wa-gap-3">
+                <wa-input name="optionNames[0]" value="Color" label="Option 1 Name"
+                          oninput="syncOptionHeader(1,this.value)">
+                    <div slot="helper" class="help">Examples: Color / Material</div>
+                </wa-input>
+
+                <wa-input name="optionNames[1]" value="Size" label="Option 2 Name"
+                          oninput="syncOptionHeader(2,this.value)">
+                    <div slot="helper" class="help">Examples: Size / Length</div>
+                </wa-input>
+
+                <wa-input name="optionNames[2]" label="Option 3 Name"
+                          oninput="syncOptionHeader(3,this.value)">
+                    <div slot="helper" class="help">Optional</div>
+                </wa-input>
+            </div>
+
+            <!-- Variants -->
+            <div class="section-title">Variants</div>
+            <wa-card class="wa-stack" variant="neutral" style="padding:10px">
+                <div class="wa-row wa-justify-between wa-items-center">
+                    <div class="help">Headers reflect the option names above</div>
+                    <div class="wa-row wa-gap-2">
+                        <wa-button variant="primary" onclick="addVariantRow()" type="button">Add variant</wa-button>
+                        <wa-button variant="neutral" onclick="clearVariants()" type="button">Clear</wa-button>
+                    </div>
+                </div>
+
+                <div class="variants-scroll">
+                    <table class="wa-table sticky-head zebra">
+                        <thead>
+                        <tr>
+                            <th id="opt-h1">Color</th>
+                            <th id="opt-h2">Size</th>
+                            <th id="opt-h3">Option3</th>
+                            <th>Variant ID</th>
+                            <th>SKU</th>
+                            <th style="width:120px">Price</th>
+                            <th style="width:140px">Compare At Price</th>
+                            <th>Available</th>
+                            <th>Image URL</th>
+                            <th style="width:60px">#</th>
+                        </tr>
+                        </thead>
+                        <tbody id="variants-body">
+                        <tr class="empty-row" id="variants-empty">
+                            <td colspan="10">No variants yet. Click <b>Add variant</b>.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </wa-card>
+
+            <!-- 右下角固定操作栏 -->
+            <div class="sticky-actions">
+                <span id="create-spinner" class="help" hidden>Saving…</span>
+                <wa-button type="submit" variant="primary">Create</wa-button>
+            </div>
+        </form>
+    </wa-card>
+
+    <!-- 行模板 -->
+    <template id="variant-row-tpl">
+        <tr>
+            <td><wa-input  placeholder="e.g. Black"  name="variants[__i__].option1"></wa-input></td>
+            <td><wa-input  placeholder="e.g. XS"     name="variants[__i__].option2"></wa-input></td>
+            <td><wa-input                      name="variants[__i__].option3"></wa-input></td>
+            <td><wa-input type="number" required name="variants[__i__].variantId"></wa-input></td>
+            <td><wa-input                      name="variants[__i__].sku"></wa-input></td>
+            <td><wa-input type="number" step="0.01" name="variants[__i__].price"></wa-input></td>
+            <td><wa-input type="number" step="0.01" name="variants[__i__].comparePrice"></wa-input></td>
+            <td style="text-align:center"><wa-switch name="variants[__i__].available"></wa-switch></td>
+            <td><wa-input                      name="variants[__i__].imageUrl" placeholder="https://..."></wa-input></td>
+            <td>
+                <wa-button size="sm" variant="danger"
+                           onclick="this.closest('tr').remove(); updateEmptyState();"
+                           type="button">Del</wa-button>
+            </td>
+        </tr>
+    </template>
+
+    <script>
+        let variantIndex = 0;
+
+        function updateEmptyState(){
+            const body = document.getElementById('variants-body');
+            const empty = document.getElementById('variants-empty');
+            const hasData = body.querySelectorAll('tr:not(#variants-empty)').length > 0;
+            if (empty) empty.style.display = hasData ? 'none' : '';
+        }
+
+        function addVariantRow(initial = {}){
+            const tpl = document.getElementById('variant-row-tpl').innerHTML.replaceAll('__i__', variantIndex++);
+            const tmp = document.createElement('tbody'); tmp.innerHTML = tpl;
+            const row = tmp.firstElementChild;
+
+            if (initial.option1) row.querySelector('[name$=".option1"] input')?.setAttribute('value', initial.option1);
+            if (initial.option2) row.querySelector('[name$=".option2"] input')?.setAttribute('value', initial.option2);
+            if (initial.option3) row.querySelector('[name$=".option3"] input')?.setAttribute('value', initial.option3);
+
+            document.getElementById('variants-body').appendChild(row);
+            updateEmptyState();
+        }
+
+        function clearVariants(){
+            const body = document.getElementById('variants-body');
+            body.querySelectorAll('tr:not(#variants-empty)').forEach(tr => tr.remove());
+            variantIndex = 0; updateEmptyState();
+        }
+
+        function resetVariantTable(){ clearVariants(); addVariantRow(); }
+
+        function syncOptionHeader(k, val){
+            const th = document.getElementById('opt-h' + k);
+            if (!th) return;
+            const txt = (val && val.trim()) ? val.trim() : ('Option' + k);
+            th.textContent = txt;
+
+            // 选项 3 名称为空时，视觉隐藏整列
+            if (k === 3){
+                const show = !!(val && val.trim());
+                const table = th.closest('table');
+                const idx = [...th.parentNode.children].indexOf(th) + 1;
+                table.querySelectorAll('tr > *:nth-child(' + idx + ')').forEach(cell => {
+                    cell.style.display = show ? '' : 'none';
+                });
+            }
+        }
+
+        function showCreateToast(){
+            const tip = document.createElement('div');
+            tip.textContent = 'Created successfully';
+            tip.style.cssText =
+                'position:fixed;right:16px;bottom:16px;background:#111827;color:#fff;padding:8px 12px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.2);z-index:9999';
+            document.body.appendChild(tip);
+            setTimeout(() => tip.remove(), 1800);
+        }
+
+        function validateProductForm(){
+            const rows = document.querySelectorAll('#variants-body tr:not(#variants-empty)');
+            if (rows.length === 0){ alert('Please add at least one variant.'); return false; }
+            for (const tr of rows){
+                const price   = parseFloat(tr.querySelector('[name$=".price"] input')?.value || '0');
+                const compare = parseFloat(tr.querySelector('[name$=".comparePrice"] input')?.value || '0');
+                if (price < 0 || compare < 0){ alert('Price/Compare At Price must be non-negative.'); return false; }
+                if (!isNaN(compare) && !isNaN(price) && compare !== 0 && compare < price){
+                    alert('Compare At Price should be greater than or equal to Price.'); return false;
+                }
+            }
+            return true;
+        }
+
+        // 初始一行
+        document.addEventListener('DOMContentLoaded', () => resetVariantTable());
+    </script>
+</th:block>
+</html>
