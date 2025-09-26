@@ -18,26 +18,18 @@
         <td>
             <div class="muted" th:text="${p.vendor}">Vendor</div>
         </td>
-
         <td th:text="${p.productType != null ? p.productType : '-'}">ProductType</td>
 
         <td>
             <div class="tags-wrap"
                  th:if="${p.tags != null and !#lists.isEmpty(p.tags)}"
-                 th:with="
-         count=${#lists.size(p.tags)},
-         shown=${count > 4 ? p.tags.subList(0,4) : p.tags},
-         more=${count - #lists.size(shown)}
-       ">
+                 th:with="count=${#lists.size(p.tags)}, shown=${count > 4 ? p.tags.subList(0,4) : p.tags}, more=${count - #lists.size(shown)}">
                 <span class="tag-pill" th:each="t : ${shown}" th:text="${t}">Tag</span>
-                <span class="tag-pill" th:if="${more > 0}"
-                      th:title="${#strings.listJoin(p.tags, ', ')}"
+                <span class="tag-pill" th:if="${more > 0}" th:title="${#strings.listJoin(p.tags, ', ')}"
                       th:text="|+${more}|">+N</span>
             </div>
-
             <span class="muted" th:if="${p.tags == null or #lists.isEmpty(p.tags)}">—</span>
         </td>
-
 
         <td th:text="${p.minPrice != null ? #numbers.formatDecimal(p.minPrice,1,'COMMA',2,'POINT') : '-'}">-</td>
         <td th:text="${p.updatedAt != null ? #temporals.format(p.updatedAt,'yyyy-MM-dd HH:mm') : '-'}">-</td>
@@ -55,68 +47,26 @@
                          hx-swap='afterend',
                          hx-indicator=${'#spin-' + p.productId},
                          data-pid=${p.productId}
-           ">
-                Display variants
+           ">Display variants
             </wa-button>
         </td>
     </tr>
     </tbody>
 
-    <!-- ===== 分页（OOB 更新 index.html 里的 #pager） ===== -->
-    <nav id="pager"
-         class="wa-pagination"
-         hx-swap-oob="true"
-         aria-label="Pagination"
-         th:with="
-         p=${page}?:1,
-         s=${size}?:10,
-         total=${total}?:0,
-         tp=${totalPages}?:1,
-         start=${p > 3 ? p - 2 : 1},
-         end=${p + 2 < tp ? p + 2 : tp},
-         q=${param.search != null ? param.search[0] : null}
-       ">
-
-        <!-- Prev -->
-        <a class="wa-page"
-           th:classappend="${p <= 1} ? ' wa-disabled' : ''"
-           th:attr="
-         hx-get=@{/products(page=${p-1},size=${s},search=${q})},
-         hx-target='#products',
-         hx-swap='outerHTML',
-         hx-indicator='#spinner'
-       ">Prev</a>
-
-        <!-- 左省略号 -->
+    <!-- OOB 更新分页 -->
+    <nav id="pager" class="wa-pagination" hx-swap-oob="true" aria-label="Pagination"
+         th:with="p=${page}?:1, s=${size}?:10, total=${total}?:0, tp=${totalPages}?:1,
+                  start=${p > 3 ? p - 2 : 1}, end=${p + 2 < tp ? p + 2 : tp},
+                  q=${param.search != null ? param.search[0] : null}">
+        <a class="wa-page" th:classappend="${p <= 1} ? ' wa-disabled' : ''"
+           th:attr="hx-get=@{/products(page=${p-1},size=${s},search=${q})}, hx-target='#products', hx-swap='outerHTML', hx-indicator='#spinner'">Prev</a>
         <span class="wa-ellipsis" th:if="${start > 1}">…</span>
-
-        <!-- 数字页 -->
-        <a class="wa-page"
-           th:each="i : ${#numbers.sequence(start, end)}"
-           th:classappend="${i == p} ? ' wa-active' : ''"
-           th:attr="
-         hx-get=@{/products(page=${i},size=${s},search=${q})},
-         hx-target='#products',
-         hx-swap='outerHTML',
-         hx-indicator='#spinner'
-       ">[[${i}]]</a>
-
-        <!-- 右省略号 -->
+        <a class="wa-page" th:each="i : ${#numbers.sequence(start, end)}" th:classappend="${i == p} ? ' wa-active' : ''"
+           th:attr="hx-get=@{/products(page=${i},size=${s},search=${q})}, hx-target='#products', hx-swap='outerHTML', hx-indicator='#spinner'">[[${i}]]</a>
         <span class="wa-ellipsis" th:if="${end < tp}">…</span>
-
-        <!-- Next -->
-        <a class="wa-page"
-           th:classappend="${p >= tp} ? ' wa-disabled' : ''"
-           th:attr="
-         hx-get=@{/products(page=${p+1},size=${s},search=${q})},
-         hx-target='#products',
-         hx-swap='outerHTML',
-         hx-indicator='#spinner'
-       ">Next</a>
-
-        <!-- 统计（可选） -->
-        <span class="muted" style="margin-left:8px"
-              th:text="|Total: ${total}, Pages: ${tp}|">Total: 0, Pages: 0</span>
+        <a class="wa-page" th:classappend="${p >= tp} ? ' wa-disabled' : ''"
+           th:attr="hx-get=@{/products(page=${p+1},size=${s},search=${q})}, hx-target='#products', hx-swap='outerHTML', hx-indicator='#spinner'">Next</a>
+        <span class="muted" style="margin-left:8px" th:text="|Total: ${total}, Pages: ${tp}|">Total: 0, Pages: 0</span>
     </nav>
 </th:block>
 </html>

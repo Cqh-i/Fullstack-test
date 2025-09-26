@@ -6,7 +6,6 @@
     <link rel="stylesheet" href="https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/styles/webawesome.css" />
     <script type="module" src="https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/webawesome.loader.js"></script>
 
-
     <script src="https://unpkg.com/htmx.org@2.0.0"></script>
     <style>
         body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; margin: 24px; }
@@ -24,7 +23,6 @@
         .wa-page.wa-active { background:#111827; color:#fff; border-color:#111827; }
         .wa-page.wa-disabled { opacity:.5; pointer-events:none; }
         .wa-ellipsis { padding:0 4px; color:#6b7280; }
-        /* index.html 的 <style> 里追加 */
         .pager-wrap { display:flex; justify-content:center; margin-top:8px; }
         .wa-pagination { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-top:12px;}
         .tags-wrap wa-badge { margin-right: 6px; margin-bottom: 4px; }
@@ -34,16 +32,14 @@
             margin:2px 6px 2px 0;
             font-size:12px; line-height:18px;
             border-radius:9999px;
-            background:#f1f5f9;           /* 背景浅灰蓝 */
-            color:#0f172a;                 /* 深色文字 */
-            border:1px solid #e2e8f0;      /* 细边框 */
+            background:#f1f5f9;
+            color:#0f172a;
+            border:1px solid #e2e8f0;
             white-space:nowrap;
         }
-
-        .page-wrap {
-            width: 80%;
-            margin: 24px auto;   /* 上下 24px 外边距 + 水平居中 */
-        }
+        .page-wrap { width: 80%; margin: 24px auto; }
+        /* Prevent FOUC for Web Awesome dialogs */
+        wa-dialog:not([open]) { display: none; }
 
     </style>
 </head>
@@ -63,7 +59,6 @@
         <span id="spinner" class="indicator muted" hidden>Loading…</span>
         <span class="muted">Tip: Click “Load products” to fetch from the database.</span>
     </div>
-
 
     <table>
         <thead>
@@ -89,18 +84,25 @@
     </table>
 
     <!-- 分页条占位：首次为空，等片段通过 OOB 更新 -->
-    <!-- index.html -->
     <div class="pager-wrap">
         <nav id="pager" class="wa-pagination muted" aria-label="Pagination"></nav>
     </div>
 
-
-    <!-- 表单默认隐藏；在表格第一次加载成功后再显示 -->
+    <!-- 创建表单容器（第一次加载产品后再异步载入表单） -->
     <div id="create-form" hidden>
         <div class="muted" style="margin:12px 0">Scroll to load the create form…</div>
     </div>
 
-
+    <!-- ① 成功弹窗（Web Awesome） -->
+    <wa-dialog id="created-modal" size="sm">
+        <span slot="headline">Product created</span>
+        <div class="wa-stack">
+            <div>Product has been added successfully.</div>
+        </div>
+        <wa-button slot="footer" variant="brand" autofocus onclick="document.getElementById('created-modal').open=false">
+            OK
+        </wa-button>
+    </wa-dialog>
 
     <script>
         // 当 #products 被 htmx 替换（首次加载/后续刷新）后，展示“Add product”表单
@@ -125,6 +127,7 @@
             alert('Request failed: ' + e.detail.xhr.status);
         });
 
+        // ② 处理“变体展开/收起”按钮
         (function () {
             const isToggler = (el) => el instanceof Element && el.classList.contains('toggle-variants');
 
@@ -149,7 +152,7 @@
                 }
             }, true); // ← 用捕获阶段
 
-            // 2) 首次展开：请求完成后把按钮文案切到“hide variants”
+            // 首次展开：请求成功后把按钮文案切到 “Hide variants”
             document.body.addEventListener('htmx:afterRequest', function (e) {
                 const el = e.target;
                 if (!isToggler(el)) return;
@@ -158,6 +161,37 @@
                 if (xhr && xhr.status >= 200 && xhr.status < 400) {
                     el.dataset.opened = 'true';
                     el.textContent = 'Hide variants';
+                }
+            });
+        })();
+
+        // ③ 监听创建产品提交成功并弹窗
+        (function () {
+            document.body.addEventListener('htmx:afterRequest', function (e) {
+                const xhr = e.detail && e.detail.xhr;
+                const elt = e.detail && e.detail.elt;   // 触发请求的元素（这里期望是 #create-product-form）
+
+                if (!(xhr && elt && elt.id === 'create-product-form')) return;
+                if (xhr.status < 200 || xhr.status >= 400) return;
+
+                // 成功判定优先级：
+                // A) 后端通过 HX-Trigger 或 HX-Trigger-After-Swap 显式触发 "product:created"
+                const trig = (xhr.getResponseHeader('HX-Trigger') || '') + ' ' + (xhr.getResponseHeader('HX-Trigger-After-Swap') || '');
+                let success = /\bproduct:created\b/i.test(trig);
+
+                // B) 兼容：响应体包含产品表格片段标识（常见成功分支）
+                if (!success && typeof xhr.responseText === 'string' && xhr.responseText.indexOf('products_tbody') >= 0) {
+                    success = true;
+                }
+
+                // C) 兼容：响应体中不再包含“create-product-form”（通常说明没有返回表单错误，而是转到别的片段）
+                if (!success && typeof xhr.responseText === 'string' && xhr.responseText.indexOf('create-product-form') === -1) {
+                    success = true;
+                }
+
+                if (success) {
+                    const dlg = document.getElementById('created-modal');
+                    if (dlg) dlg.open = true;
                 }
             });
         })();

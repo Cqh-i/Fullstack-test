@@ -1,8 +1,6 @@
 <!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<!-- 片段参数： productId, rows(List<VariantRow>), optionNames(List<String>) -->
 <th:block th:fragment="variants_rows (productId, rows, optionNames)">
-    <!-- 计算列数与每列名称 -->
     <th:block th:with="
       c=${optionNames != null ? #lists.size(optionNames) : 0},
       n1=${c>=1 ? optionNames.get(0) : 'Option1'},
@@ -18,7 +16,6 @@
                         <th style="padding:6px 8px" th:if="${c>=1}" th:text="${n1}">Option1</th>
                         <th style="padding:6px 8px" th:if="${c>=2}" th:text="${n2}">Option2</th>
                         <th style="padding:6px 8px" th:if="${c>=3}" th:text="${n3}">Option3</th>
-
                         <th style="padding:6px 8px">SKU</th>
                         <th style="padding:6px 8px">Price</th>
                         <th style="padding:6px 8px">Compare At Price</th>
@@ -32,7 +29,6 @@
                         <td th:if="${c>=1}" th:text="${v.option1}">-</td>
                         <td th:if="${c>=2}" th:text="${v.option2}">-</td>
                         <td th:if="${c>=3}" th:text="${v.option3}">-</td>
-
                         <td th:text="${v.sku}">-</td>
                         <td th:text="${v.price != null ? #numbers.formatDecimal(v.price,1,'COMMA',2,'POINT') : '-'}">-
                         </td>
@@ -48,7 +44,6 @@
                     </tbody>
                 </table>
 
-                <!-- 收起按钮（Web Awesome） -->
                 <div style="margin-top:8px">
                     <wa-button variant="neutral"
                                th:attr="onclick=|(()=>{const row=document.getElementById('variants-${productId}'); if(row) row.remove(); const btn=document.querySelector('.toggle-variants[data-pid=&quot;${productId}&quot;]'); if(btn){ btn.dataset.opened='false'; btn.textContent='Display variants'; }})()|">

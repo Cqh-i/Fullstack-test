@@ -2,7 +2,6 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <th:block th:fragment="create_form">
     <style>
-        /* 仅作用于此片段的轻量样式 */
         .help {
             color: var(--wa-color-muted, #6b7280);
             font-size: 12px
@@ -24,7 +23,6 @@
             background: #fafafa
         }
 
-        /* 1) 顶部主标题更醒目 */
         .form-title {
             font-weight: 700;
             font-size: 18px;
@@ -33,7 +31,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            margin: 2px 0 10px 0;
+            margin: 2px 0 10px 0
         }
 
         .form-title .bar {
@@ -44,7 +42,6 @@
             opacity: .9
         }
 
-        /* 2) 分段标题条（小节标题更明显） */
         .section-title {
             font-weight: 600;
             font-size: 13px;
@@ -53,15 +50,13 @@
             border: 1px solid #e5e7eb;
             padding: 8px 12px;
             border-radius: 10px;
-            margin: 2px 0 8px 0;
+            margin: 2px 0 8px 0
         }
 
-        /* 3) 片段上外边距（由此片段控制，不改变居中/宽度） */
         #create-product-card {
             margin-top: 16px
         }
 
-        /* 4) 右下角固定操作栏 */
         .sticky-actions {
             position: static;
             bottom: 0;
@@ -73,54 +68,45 @@
             border-top: 1px solid #e5e7eb
         }
 
-        /* 横向滚动容器，防止超出卡片 */
         .variants-scroll {
             width: 100%;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: 6px; /* 给滚动条留点空隙，美观些 */
+            padding-bottom: 6px
         }
 
-        /* 让表格在窄屏时出现横向滚动，而不是把父容器顶破 */
         .variants-scroll .wa-table {
-            min-width: 1100px; /* 按你列数设置一个合理的 min-width */
+            min-width: 1100px
         }
 
-        /* 缩小表格内 Web Awesome 字段的最小宽度 */
         .variants-scroll td > wa-input {
             min-width: 120px;
-            display: block;
+            display: block
         }
 
         .variants-scroll td:nth-child(1) > wa-input,
         .variants-scroll td:nth-child(2) > wa-input,
         .variants-scroll td:nth-child(3) > wa-input {
-            min-width: 100px;
+            min-width: 100px
         }
 
-        /* 三个选项列更窄 */
         .variants-scroll td:nth-child(9) > wa-input {
-            min-width: 200px;
+            min-width: 200px
         }
 
-        /* Image URL 列稍宽些 */
-
-        /* 删除按钮列固定宽度，避免把整行撑大 */
         .variants-scroll th:nth-child(10),
         .variants-scroll td:nth-child(10) {
             width: 64px;
-            white-space: nowrap;
+            white-space: nowrap
         }
 
-        /* Available 列居中且不撑宽 */
         .variants-scroll td:nth-child(8) {
             text-align: center;
-            min-width: 90px;
+            min-width: 90px
         }
     </style>
 
     <wa-card id="create-product-card" class="wa-stack" style="padding:14px" hx-on="htmx:load: resetVariantTable()">
-        <!-- 主标题 -->
         <div class="form-title">
             <span class="bar"></span>
             <span>Add product</span>
@@ -156,14 +142,11 @@
                           oninput="syncOptionHeader(1,this.value)">
                     <div slot="helper" class="help">Examples: Color / Material</div>
                 </wa-input>
-
                 <wa-input name="optionNames[1]" value="Size" label="Option 2 Name"
                           oninput="syncOptionHeader(2,this.value)">
                     <div slot="helper" class="help">Examples: Size / Length</div>
                 </wa-input>
-
-                <wa-input name="optionNames[2]" label="Option 3 Name"
-                          oninput="syncOptionHeader(3,this.value)">
+                <wa-input name="optionNames[2]" label="Option 3 Name" oninput="syncOptionHeader(3,this.value)">
                     <div slot="helper" class="help">Optional</div>
                 </wa-input>
             </div>
@@ -204,7 +187,6 @@
                 </div>
             </wa-card>
 
-            <!-- 右下角固定操作栏 -->
             <div class="sticky-actions">
                 <span id="create-spinner" class="help" hidden>Saving…</span>
                 <wa-button id="btn-create" type="button" variant="primary"
@@ -246,8 +228,7 @@
                 <wa-input name="variants[__i__].imageUrl" placeholder="https://..."></wa-input>
             </td>
             <td>
-                <wa-button size="sm" variant="danger"
-                           onclick="this.closest('tr').remove(); updateEmptyState();"
+                <wa-button size="sm" variant="danger" onclick="this.closest('tr').remove(); updateEmptyState();"
                            type="button">Del
                 </wa-button>
             </td>
@@ -296,7 +277,6 @@
             const txt = (val && val.trim()) ? val.trim() : ('Option' + k);
             th.textContent = txt;
 
-            // 选项 3 名称为空时，视觉隐藏整列
             if (k === 3) {
                 const show = !!(val && val.trim());
                 const table = th.closest('table');
@@ -307,25 +287,15 @@
             }
         }
 
-        function showCreateToast() {
-            const tip = document.createElement('div');
-            tip.textContent = 'Created successfully';
-            tip.style.cssText =
-                'position:fixed;right:16px;bottom:16px;background:#111827;color:#fff;padding:8px 12px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.2);z-index:9999';
-            document.body.appendChild(tip);
-            setTimeout(() => tip.remove(), 1800);
-        }
-
         function getTrimmedLower(s) {
             return (s || '').trim().toLowerCase();
         }
 
         function validateProductForm() {
-            // A. 先校验 Option Name 不重复（忽略空白与大小写）
+            // 1) Option Name 不重复
             const n1 = document.querySelector('[name="optionNames[0]"] input')?.value || '';
             const n2 = document.querySelector('[name="optionNames[1]"] input')?.value || '';
             const n3 = document.querySelector('[name="optionNames[2]"] input')?.value || '';
-
             const names = [n1, n2, n3].map(v => v.trim()).filter(v => v.length > 0);
             const lower = names.map(v => v.toLowerCase());
             const distinct = Array.from(new Set(lower));
@@ -334,28 +304,26 @@
                 return false;
             }
 
-            // B. 至少 1 个 variant
+            // 2) 至少 1 行 variant
             const rows = document.querySelectorAll('#variants-body tr:not(#variants-empty)');
             if (rows.length === 0) {
                 alert('Please add at least one variant.');
                 return false;
             }
 
-            // C. 每行价格必填且 > 0；Compare ≥ Price（若填写）
+            // 3) 价格校验
             for (const tr of rows) {
-                const priceEl  = tr.querySelector('[name$=".price"]');     // ← 选 wa-input 本体
+                const priceEl = tr.querySelector('[name$=".price"]');
                 const priceStr = (priceEl?.value ?? priceEl?.getAttribute('value') ?? '').toString().trim();
-                const price    = parseFloat(priceStr);
-
+                const price = parseFloat(priceStr);
                 if (!(price > 0)) {
                     alert('Price 必须大于 0');
-                    // 尝试聚焦（有的组件支持 focus()）
                     (priceEl?.focus?.())?.();
                     return false;
                 }
 
-                const compEl   = tr.querySelector('[name$=".comparePrice"]');
-                const compStr  = (compEl?.value ?? compEl?.getAttribute('value') ?? '').toString().trim();
+                const compEl = tr.querySelector('[name$=".comparePrice"]');
+                const compStr = (compEl?.value ?? compEl?.getAttribute('value') ?? '').toString().trim();
                 if (compStr) {
                     const compare = parseFloat(compStr);
                     if (!isNaN(compare) && compare < price) {
@@ -365,7 +333,6 @@
                     }
                 }
             }
-
 
             return true;
         }
