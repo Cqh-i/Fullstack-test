@@ -3,67 +3,123 @@
 <th:block th:fragment="create_form">
     <style>
         /* 仅作用于此片段的轻量样式 */
-        .help{color:var(--wa-color-muted,#6b7280);font-size:12px}
-        .empty-row td{color:#6b7280;text-align:center}
-        .sticky-head thead th{position:sticky;top:0;z-index:1;background:var(--wa-color-surface,#fff)}
-        .zebra tbody tr:nth-child(odd){background:#fafafa}
+        .help {
+            color: var(--wa-color-muted, #6b7280);
+            font-size: 12px
+        }
+
+        .empty-row td {
+            color: #6b7280;
+            text-align: center
+        }
+
+        .sticky-head thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: var(--wa-color-surface, #fff)
+        }
+
+        .zebra tbody tr:nth-child(odd) {
+            background: #fafafa
+        }
 
         /* 1) 顶部主标题更醒目 */
-        .form-title{
-            font-weight:700;font-size:18px;line-height:1.3;
-            color:#111827;display:flex;align-items:center;gap:10px;
-            margin:2px 0 10px 0;
+        .form-title {
+            font-weight: 700;
+            font-size: 18px;
+            line-height: 1.3;
+            color: #111827;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 2px 0 10px 0;
         }
-        .form-title .bar{
-            width:6px;height:18px;border-radius:4px;background:#111827;opacity:.9
+
+        .form-title .bar {
+            width: 6px;
+            height: 18px;
+            border-radius: 4px;
+            background: #111827;
+            opacity: .9
         }
 
         /* 2) 分段标题条（小节标题更明显） */
-        .section-title{
-            font-weight:600;font-size:13px;color:#111827;
-            background:#f8fafc;border:1px solid #e5e7eb;
-            padding:8px 12px;border-radius:10px;margin:2px 0 8px 0;
+        .section-title {
+            font-weight: 600;
+            font-size: 13px;
+            color: #111827;
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            padding: 8px 12px;
+            border-radius: 10px;
+            margin: 2px 0 8px 0;
         }
 
         /* 3) 片段上外边距（由此片段控制，不改变居中/宽度） */
-        #create-product-card{ margin-top:16px }
+        #create-product-card {
+            margin-top: 16px
+        }
 
         /* 4) 右下角固定操作栏 */
-        .sticky-actions{
-            position:static;bottom:0;display:flex;justify-content:flex-end;gap:10px;
-            background:linear-gradient(180deg,rgba(255,255,255,0) 0%, rgba(255,255,255,1) 24px);
-            padding-top:8px;border-top:1px solid #e5e7eb
+        .sticky-actions {
+            position: static;
+            bottom: 0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 1) 24px);
+            padding-top: 8px;
+            border-top: 1px solid #e5e7eb
         }
 
         /* 横向滚动容器，防止超出卡片 */
-        .variants-scroll{
-            width:100%;
-            overflow-x:auto;
-            -webkit-overflow-scrolling:touch;
-            padding-bottom:6px;   /* 给滚动条留点空隙，美观些 */
+        .variants-scroll {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 6px; /* 给滚动条留点空隙，美观些 */
         }
 
         /* 让表格在窄屏时出现横向滚动，而不是把父容器顶破 */
-        .variants-scroll .wa-table{
-            min-width: 1100px;    /* 按你列数设置一个合理的 min-width */
+        .variants-scroll .wa-table {
+            min-width: 1100px; /* 按你列数设置一个合理的 min-width */
         }
 
         /* 缩小表格内 Web Awesome 字段的最小宽度 */
-        .variants-scroll td > wa-input{ min-width:120px; display:block; }
+        .variants-scroll td > wa-input {
+            min-width: 120px;
+            display: block;
+        }
+
         .variants-scroll td:nth-child(1) > wa-input,
         .variants-scroll td:nth-child(2) > wa-input,
-        .variants-scroll td:nth-child(3) > wa-input{ min-width:100px; }   /* 三个选项列更窄 */
-        .variants-scroll td:nth-child(9) > wa-input{ min-width:200px; }   /* Image URL 列稍宽些 */
+        .variants-scroll td:nth-child(3) > wa-input {
+            min-width: 100px;
+        }
+
+        /* 三个选项列更窄 */
+        .variants-scroll td:nth-child(9) > wa-input {
+            min-width: 200px;
+        }
+
+        /* Image URL 列稍宽些 */
 
         /* 删除按钮列固定宽度，避免把整行撑大 */
         .variants-scroll th:nth-child(10),
-        .variants-scroll td:nth-child(10){ width:64px; white-space:nowrap; }
+        .variants-scroll td:nth-child(10) {
+            width: 64px;
+            white-space: nowrap;
+        }
 
         /* Available 列居中且不撑宽 */
-        .variants-scroll td:nth-child(8){ text-align:center; min-width:90px; }
+        .variants-scroll td:nth-child(8) {
+            text-align: center;
+            min-width: 90px;
+        }
     </style>
 
-    <wa-card id="create-product-card" class="wa-stack" style="padding:14px">
+    <wa-card id="create-product-card" class="wa-stack" style="padding:14px" hx-on="htmx:load: resetVariantTable()">
         <!-- 主标题 -->
         <div class="form-title">
             <span class="bar"></span>
@@ -72,16 +128,8 @@
 
         <form id="create-product-form"
               hx-post="/addProducts"
-              hx-target="#products"
+              hx-target="#create-product-card"
               hx-swap="outerHTML"
-              hx-indicator="#create-spinner"
-              onsubmit="return validateProductForm()"
-              hx-on="htmx:afterRequest:
-            if (event.detail.successful) {
-              this.reset();
-              resetVariantTable();
-              showCreateToast();
-            }"
               class="wa-stack">
 
             <!-- Basic info -->
@@ -96,7 +144,8 @@
                           name="tagsText"
                           label="Tags"
                           placeholder="e.g. gym, everyday-collection">
-                    <div slot="helper" class="help">Comma separated. Example: <code>gym, everyday-collection</code></div>
+                    <div slot="helper" class="help">Comma separated. Example: <code>gym, everyday-collection</code>
+                    </div>
                 </wa-input>
             </div>
 
@@ -158,7 +207,10 @@
             <!-- 右下角固定操作栏 -->
             <div class="sticky-actions">
                 <span id="create-spinner" class="help" hidden>Saving…</span>
-                <wa-button type="submit" variant="primary">Create</wa-button>
+                <wa-button id="btn-create" type="button" variant="primary"
+                           onclick="if (validateProductForm()) { document.getElementById('create-product-form').requestSubmit(); }">
+                    Create
+                </wa-button>
             </div>
         </form>
     </wa-card>
@@ -166,36 +218,56 @@
     <!-- 行模板 -->
     <template id="variant-row-tpl">
         <tr>
-            <td><wa-input  placeholder="e.g. Black"  name="variants[__i__].option1"></wa-input></td>
-            <td><wa-input  placeholder="e.g. XS"     name="variants[__i__].option2"></wa-input></td>
-            <td><wa-input                      name="variants[__i__].option3"></wa-input></td>
-            <td><wa-input type="number" required name="variants[__i__].variantId"></wa-input></td>
-            <td><wa-input                      name="variants[__i__].sku"></wa-input></td>
-            <td><wa-input type="number" step="0.01" name="variants[__i__].price"></wa-input></td>
-            <td><wa-input type="number" step="0.01" name="variants[__i__].comparePrice"></wa-input></td>
-            <td style="text-align:center"><wa-switch name="variants[__i__].available"></wa-switch></td>
-            <td><wa-input                      name="variants[__i__].imageUrl" placeholder="https://..."></wa-input></td>
+            <td>
+                <wa-input placeholder="e.g. Black" name="variants[__i__].option1"></wa-input>
+            </td>
+            <td>
+                <wa-input placeholder="e.g. XS" name="variants[__i__].option2"></wa-input>
+            </td>
+            <td>
+                <wa-input name="variants[__i__].option3"></wa-input>
+            </td>
+            <td>
+                <wa-input type="number" required name="variants[__i__].variantId"></wa-input>
+            </td>
+            <td>
+                <wa-input name="variants[__i__].sku"></wa-input>
+            </td>
+            <td>
+                <wa-input type="number" step="0.01" min="0.01" name="variants[__i__].price"></wa-input>
+            </td>
+            <td>
+                <wa-input type="number" step="0.01" min="0.01" name="variants[__i__].comparePrice"></wa-input>
+            </td>
+            <td style="text-align:center">
+                <wa-switch name="variants[__i__].available"></wa-switch>
+            </td>
+            <td>
+                <wa-input name="variants[__i__].imageUrl" placeholder="https://..."></wa-input>
+            </td>
             <td>
                 <wa-button size="sm" variant="danger"
                            onclick="this.closest('tr').remove(); updateEmptyState();"
-                           type="button">Del</wa-button>
+                           type="button">Del
+                </wa-button>
             </td>
         </tr>
     </template>
 
     <script>
-        let variantIndex = 0;
+        var variantIndex = typeof window.variantIndex === 'number' ? window.variantIndex : 0;
 
-        function updateEmptyState(){
+        function updateEmptyState() {
             const body = document.getElementById('variants-body');
             const empty = document.getElementById('variants-empty');
             const hasData = body.querySelectorAll('tr:not(#variants-empty)').length > 0;
             if (empty) empty.style.display = hasData ? 'none' : '';
         }
 
-        function addVariantRow(initial = {}){
+        function addVariantRow(initial = {}) {
             const tpl = document.getElementById('variant-row-tpl').innerHTML.replaceAll('__i__', variantIndex++);
-            const tmp = document.createElement('tbody'); tmp.innerHTML = tpl;
+            const tmp = document.createElement('tbody');
+            tmp.innerHTML = tpl;
             const row = tmp.firstElementChild;
 
             if (initial.option1) row.querySelector('[name$=".option1"] input')?.setAttribute('value', initial.option1);
@@ -206,22 +278,26 @@
             updateEmptyState();
         }
 
-        function clearVariants(){
+        function clearVariants() {
             const body = document.getElementById('variants-body');
             body.querySelectorAll('tr:not(#variants-empty)').forEach(tr => tr.remove());
-            variantIndex = 0; updateEmptyState();
+            variantIndex = 0;
+            updateEmptyState();
         }
 
-        function resetVariantTable(){ clearVariants(); addVariantRow(); }
+        function resetVariantTable() {
+            clearVariants();
+            addVariantRow();
+        }
 
-        function syncOptionHeader(k, val){
+        function syncOptionHeader(k, val) {
             const th = document.getElementById('opt-h' + k);
             if (!th) return;
             const txt = (val && val.trim()) ? val.trim() : ('Option' + k);
             th.textContent = txt;
 
             // 选项 3 名称为空时，视觉隐藏整列
-            if (k === 3){
+            if (k === 3) {
                 const show = !!(val && val.trim());
                 const table = th.closest('table');
                 const idx = [...th.parentNode.children].indexOf(th) + 1;
@@ -231,7 +307,7 @@
             }
         }
 
-        function showCreateToast(){
+        function showCreateToast() {
             const tip = document.createElement('div');
             tip.textContent = 'Created successfully';
             tip.style.cssText =
@@ -240,22 +316,59 @@
             setTimeout(() => tip.remove(), 1800);
         }
 
-        function validateProductForm(){
-            const rows = document.querySelectorAll('#variants-body tr:not(#variants-empty)');
-            if (rows.length === 0){ alert('Please add at least one variant.'); return false; }
-            for (const tr of rows){
-                const price   = parseFloat(tr.querySelector('[name$=".price"] input')?.value || '0');
-                const compare = parseFloat(tr.querySelector('[name$=".comparePrice"] input')?.value || '0');
-                if (price < 0 || compare < 0){ alert('Price/Compare At Price must be non-negative.'); return false; }
-                if (!isNaN(compare) && !isNaN(price) && compare !== 0 && compare < price){
-                    alert('Compare At Price should be greater than or equal to Price.'); return false;
-                }
-            }
-            return true;
+        function getTrimmedLower(s) {
+            return (s || '').trim().toLowerCase();
         }
 
-        // 初始一行
-        document.addEventListener('DOMContentLoaded', () => resetVariantTable());
+        function validateProductForm() {
+            // A. 先校验 Option Name 不重复（忽略空白与大小写）
+            const n1 = document.querySelector('[name="optionNames[0]"] input')?.value || '';
+            const n2 = document.querySelector('[name="optionNames[1]"] input')?.value || '';
+            const n3 = document.querySelector('[name="optionNames[2]"] input')?.value || '';
+
+            const names = [n1, n2, n3].map(v => v.trim()).filter(v => v.length > 0);
+            const lower = names.map(v => v.toLowerCase());
+            const distinct = Array.from(new Set(lower));
+            if (lower.length !== distinct.length) {
+                alert('Option Name 不能相同');
+                return false;
+            }
+
+            // B. 至少 1 个 variant
+            const rows = document.querySelectorAll('#variants-body tr:not(#variants-empty)');
+            if (rows.length === 0) {
+                alert('Please add at least one variant.');
+                return false;
+            }
+
+            // C. 每行价格必填且 > 0；Compare ≥ Price（若填写）
+            for (const tr of rows) {
+                const priceEl  = tr.querySelector('[name$=".price"]');     // ← 选 wa-input 本体
+                const priceStr = (priceEl?.value ?? priceEl?.getAttribute('value') ?? '').toString().trim();
+                const price    = parseFloat(priceStr);
+
+                if (!(price > 0)) {
+                    alert('Price 必须大于 0');
+                    // 尝试聚焦（有的组件支持 focus()）
+                    (priceEl?.focus?.())?.();
+                    return false;
+                }
+
+                const compEl   = tr.querySelector('[name$=".comparePrice"]');
+                const compStr  = (compEl?.value ?? compEl?.getAttribute('value') ?? '').toString().trim();
+                if (compStr) {
+                    const compare = parseFloat(compStr);
+                    if (!isNaN(compare) && compare < price) {
+                        alert('Compare At Price 应该 ≥ Price');
+                        (compEl?.focus?.())?.();
+                        return false;
+                    }
+                }
+            }
+
+
+            return true;
+        }
     </script>
 </th:block>
 </html>

@@ -100,41 +100,23 @@
     <div class="muted" style="margin:12px 0">Scroll to load the create form…</div>
 </div>
 
-<script>
-    // 仅第一次表格渲染后加载表单
-    let formLoaded = false;
-    document.body.addEventListener('htmx:afterSwap', (e) => {
-        if (formLoaded) return;
-        if (e.target && e.target.id === 'products') {
-            formLoaded = true;
-            const host = document.getElementById('create-form');
-            host.hidden = false;
-            htmx.ajax('GET', '/products/form', { target: host, swap: 'outerHTML' });
-        }
-    });
-</script>
-
 
 
 <script>
     // 当 #products 被 htmx 替换（首次加载/后续刷新）后，展示“Add product”表单
     (function () {
-        let formLoaded = false;
+        if (window.__createFormLoaderInited) return;
+        window.__createFormLoaderInited = true;
 
+        let formLoaded = false;
         document.body.addEventListener('htmx:afterSwap', function (e) {
-            // afterSwap 的真正目标是 e.detail.target
             const swapped = e.detail && e.detail.target;
             if (!swapped || swapped.id !== 'products' || formLoaded) return;
 
             formLoaded = true;
             const host = document.getElementById('create-form');
             host.hidden = false;
-
-            // 用选择器字符串作为 target，更兼容
-            htmx.ajax('GET', '/products/form', {
-                target: '#create-form',
-                swap: 'outerHTML'
-            });
+            htmx.ajax('GET', '/products/form', { target: '#create-form', swap: 'outerHTML' });
         });
     })();
 
@@ -158,7 +140,7 @@
                 const row = document.getElementById('variants-' + btn.dataset.pid);
                 if (row) row.remove();
                 btn.dataset.opened = 'false';
-                btn.textContent = '显示规格';
+                btn.textContent = 'Display Variants';
 
                 // 三连阻断，避免 htmx 仍然发送请求
                 e.preventDefault();
@@ -167,7 +149,7 @@
             }
         }, true); // ← 用捕获阶段
 
-        // 2) 首次展开：请求完成后把按钮文案切到“隐藏规格”
+        // 2) 首次展开：请求完成后把按钮文案切到“hide variants”
         document.body.addEventListener('htmx:afterRequest', function (e) {
             const el = e.target;
             if (!isToggler(el)) return;
@@ -175,7 +157,7 @@
             const xhr = e.detail && e.detail.xhr;
             if (xhr && xhr.status >= 200 && xhr.status < 400) {
                 el.dataset.opened = 'true';
-                el.textContent = '隐藏规格';
+                el.textContent = 'hide variants';
             }
         });
     })();

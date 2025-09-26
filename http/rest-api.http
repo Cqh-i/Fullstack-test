@@ -1,0 +1,7 @@
+##  fetches products details
+GET https://famme.no/products.json
+Accept: application/json
+
+<> 2025-09-26T105137.200.json
+
+###

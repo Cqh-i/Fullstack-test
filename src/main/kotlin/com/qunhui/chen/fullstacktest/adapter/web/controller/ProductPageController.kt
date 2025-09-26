@@ -6,7 +6,9 @@ import com.qunhui.chen.fullstacktest.repo.ProductRepo
 import com.qunhui.chen.fullstacktest.repo.ProductUpsertCmd
 import com.qunhui.chen.fullstacktest.repo.VariantRepo
 import com.qunhui.chen.fullstacktest.repo.VariantUpsertCmd
+import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
+import jakarta.validation.constraints.AssertTrue
 import jakarta.validation.constraints.DecimalMin
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotEmpty
@@ -54,12 +56,25 @@ data class CreateProductForm(
     val vendor: String? = null,
     val productType: String? = null,
     val tagsText: String? = null,
+
+    // 最多 3 个，可空或空串，但非空名称之间不得重复
     val optionNames: List<String> = emptyList(),
+
 
     @field:NotEmpty(message = "At least one variant is required")
     @field:Valid
     val variants: List<CreateVariantForm> = emptyList()
-)
+) {
+    @get:AssertTrue(message = "Option Name must be distinct")
+    val optionNamesDistinct: Boolean
+        get() {
+            val names = optionNames
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .map { it.lowercase() }
+            return names.size == names.distinct().size
+        }
+}
 
 @Controller
 class ProductPageController(
@@ -78,7 +93,8 @@ class ProductPageController(
     fun create(
         @Valid @ModelAttribute form: CreateProductForm,
         result: BindingResult,
-        model: Model
+        model: Model,
+        response: HttpServletResponse
     ): String {
         // A. 表单校验
         if (result.hasErrors()) {
@@ -153,6 +169,12 @@ class ProductPageController(
         // 重新查询并返回 tbody 片段
         val rows = productRepo.listForViewPaged(limit = 10, offset = 0, search = null)
         model.addAttribute("items", rows)
+
+        // 关键：本次响应把目标改为 #products，并用 outerHTML 整块替换
+        response.setHeader("HX-Retarget", "#products")
+        response.setHeader("HX-Reswap", "outerHTML")
+        response.setHeader("HX-Trigger", "product:created")
+
         return "products/_tbody :: products_tbody"
     }
 }
