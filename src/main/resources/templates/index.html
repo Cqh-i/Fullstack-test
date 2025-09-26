@@ -26,21 +26,63 @@
         .pager-wrap { display:flex; justify-content:center; margin-top:8px; }
         .wa-pagination { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-top:12px;}
         .tags-wrap wa-badge { margin-right: 6px; margin-bottom: 4px; }
-        .tag-pill {
-            display:inline-block;
-            padding:2px 8px;
-            margin:2px 6px 2px 0;
-            font-size:12px; line-height:18px;
-            border-radius:9999px;
-            background:#f1f5f9;
-            color:#0f172a;
-            border:1px solid #e2e8f0;
-            white-space:nowrap;
-        }
+        .tag-pill { display:inline-block; padding:2px 8px; margin:2px 6px 2px 0; font-size:12px; line-height:18px; border-radius:9999px; background:#f1f5f9; color:#0f172a; border:1px solid #e2e8f0; white-space:nowrap; }
         .page-wrap { width: 80%; margin: 24px auto; }
-        /* Prevent FOUC for Web Awesome dialogs */
+
+        /* 防止 Web Components 初始化前闪现 */
         wa-dialog:not([open]) { display: none; }
 
+        /* ===== 美化 wa-dialog（若库暴露 ::part 将生效；未暴露则优雅降级，仅使用内容区样式） ===== */
+        /* 面板圆角与阴影（部分库支持 ::part(panel) 命名，若不支持会被忽略，不影响页面） */
+        wa-dialog::part(panel) {
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,.22);
+            border: 1px solid #e5e7eb;
+        }
+        /* 关闭按钮轻一点 */
+        wa-dialog::part(close-button) {
+            color: #64748b;
+        }
+
+        /* 自定义内容区样式（必生效，因为这是你的光 DOM） */
+        .modal-success {
+            padding: 6px 2px 2px;
+            min-width: 360px;
+            max-width: 520px;
+            animation: scaleIn .18s ease-out;
+        }
+        .modal-success .icon-wrap {
+            width: 56px; height: 56px; border-radius: 50%;
+            display: grid; place-items: center;
+            background: radial-gradient(120% 120% at 0% 0%, #22c55e 0%, #16a34a 60%, #0e9f6e 100%);
+            box-shadow: 0 6px 16px rgba(16,185,129,.35);
+            margin: 4px auto 10px;
+            color: white; font-size: 28px; font-weight: 700;
+        }
+        .modal-success .headline {
+            text-align: center;
+            margin: 4px 0 6px;
+            font-weight: 700; font-size: 18px; color: #0f172a;
+            letter-spacing: .2px;
+        }
+        .modal-success .body {
+            text-align: center;
+            color: #334155; font-size: 14px; line-height: 1.6;
+            margin: 0 2px 8px;
+        }
+        .modal-success .actions {
+            display: flex; gap: 10px; justify-content: center;
+            margin-top: 12px;
+        }
+        /* 移动端更友好：按钮占满一行 */
+        @media (max-width: 520px) {
+            .modal-success { min-width: 0; width: 86vw; }
+            .modal-success .actions > * { flex: 1 1 auto; }
+        }
+        @keyframes scaleIn {
+            from { transform: translateY(6px) scale(.98); opacity: 0; }
+            to   { transform: translateY(0) scale(1);    opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -93,15 +135,16 @@
         <div class="muted" style="margin:12px 0">Scroll to load the create form…</div>
     </div>
 
-    <!-- ① 成功弹窗（Web Awesome） -->
+    <!-- 成功弹窗 -->
     <wa-dialog id="created-modal" size="sm">
-        <span slot="headline">Product created</span>
-        <div class="wa-stack">
-            <div>Product has been added successfully.</div>
+        <div class="modal-success" role="status" aria-live="polite">
+            <div class="icon-wrap">✓</div>
+            <div class="headline">Product added</div>
+            <div class="body">Product has been added successfully.</div>
+            <div class="actions">
+                <wa-button variant="brand" autofocus onclick="document.getElementById('created-modal').open=false">OK</wa-button>
+            </div>
         </div>
-        <wa-button slot="footer" variant="brand" autofocus onclick="document.getElementById('created-modal').open=false">
-            OK
-        </wa-button>
     </wa-dialog>
 
     <script>

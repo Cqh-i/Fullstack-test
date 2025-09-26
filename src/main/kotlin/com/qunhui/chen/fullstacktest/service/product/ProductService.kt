@@ -47,7 +47,7 @@ class ProductService(
                 )
             )
 
-            form.variants.forEach { v ->
+            form.variants.forEachIndexed { index, v ->
                 variantRepo.upsert(
                     VariantUpsertCmd(
                         variantId = v.variantId,
@@ -57,7 +57,7 @@ class ProductService(
                         price = v.price,
                         comparePrice = v.comparePrice,
                         available = v.available,
-                        position = null,
+                        position = index + 1, // 从 1 开始
                         option1 = v.option1,
                         option2 = v.option2,
                         option3 = v.option3,
