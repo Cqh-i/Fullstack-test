@@ -16,7 +16,5 @@ data class VariantRow(
     val comparePrice: BigDecimal?,
     val available: Boolean?,   // 允许为 null；模板里 null/false 都按 “No” 显示
     val imageUrl: String?
-    // 如需在列表里用到再加：
-    // val title: String? = null,
-    // val position: Int? = null
+
 )

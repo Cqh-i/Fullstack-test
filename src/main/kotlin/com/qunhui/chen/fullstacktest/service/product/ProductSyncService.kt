@@ -1,4 +1,4 @@
-package com.qunhui.chen.fullstacktest.service
+package com.qunhui.chen.fullstacktest.service.product
 
 
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -16,7 +16,6 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
-import java.time.Duration
 
 /**
  * @author Qunhui Chen
@@ -27,12 +26,11 @@ class ProductSyncService(
     private val productRepo: ProductRepo,
     private val variantRepo: VariantRepo,
     private val mapper: ObjectMapper,
-    private val transactionTemplate: TransactionTemplate
-
+    private val transactionTemplate: TransactionTemplate,
+    private val http: HttpClient
 
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
-    private val http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build()
 
     fun sync() {
         val start = System.currentTimeMillis()
@@ -98,14 +96,12 @@ class ProductSyncService(
     private fun fetchProducts(): List<RemoteProduct> {
         val req = HttpRequest.newBuilder()
             .uri(URI.create("https://famme.no/products.json"))
-            .timeout(Duration.ofSeconds(20))
             .GET()
             .build()
         val res = http.send(req, HttpResponse.BodyHandlers.ofString())
         if (res.statusCode() != 200) error("HTTP ${res.statusCode()}")
         val body = res.body()
 
-        // 两种结构都兼容：{ products:[...] } 或直接是 [...]
         return try {
             mapper.readValue<ProductList>(body).products
         } catch (e: Exception) {

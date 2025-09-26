@@ -1,14 +1,23 @@
 package com.qunhui.chen.fullstacktest.adapter.web.controller;
 
+import com.qunhui.chen.fullstacktest.adapter.web.domain.CreateProductForm
 import com.qunhui.chen.fullstacktest.repo.ProductRepo
-import com.qunhui.chen.fullstacktest.repo.ProductUpsertCmd
 import com.qunhui.chen.fullstacktest.repo.VariantRepo
-import org.slf4j.LoggerFactory
+import com.qunhui.chen.fullstacktest.service.product.ProductService
+import jakarta.servlet.http.HttpServletResponse
+import jakarta.validation.Valid
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
+import org.springframework.validation.BindingResult
 import org.springframework.web.bind.annotation.*
 
 /**
+ * - GET   "/"                         → 首页
+ * - GET   "/products"                 → 返回 <tbody id="products"> 片段
+ * - GET   "/products/form"            → 返回创建产品表单片段
+ * - POST  "/addProducts"              → 处理创建（沿用原路由），成功后刷新 #products
+ * - GET   "/products/{productId}/variants" → 返回某产品的变体行片段
+ *
  * @author Qunhui Chen
  * @date 2025/9/24 00:58
  */
@@ -16,15 +25,15 @@ import org.springframework.web.bind.annotation.*
 class ProductController(
     private val productRepo: ProductRepo,
     private val variantRepo: VariantRepo,
-) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val productService: ProductService,
 
+    ) {
+
+    // 首页
     @GetMapping("/")
     fun index(model: Model): String = "index"
 
-    /**
-     * 返回 <tbody id="products"> 片段，供 htmx 替换
-     */
+    // 返回 <tbody id="products"> 片段（分页/搜索）
     @GetMapping("/products")
     fun productsPartial(
         @RequestParam(name = "search", required = false) search: String?,
@@ -44,10 +53,40 @@ class ProductController(
         model.addAttribute("size", size)
         model.addAttribute("total", total)
         model.addAttribute("totalPages", totalPages)
-
+        model.addAttribute("search", search)
         return "products/_tbody :: products_tbody"
     }
 
+    // 表单片段
+    @GetMapping("/products/form")
+    fun form(model: Model): String = "products/_form :: create_form"
+
+    // 创建 & 刷新表格（沿用原路由 /addProducts，避免前端 htmx 改动）
+    @PostMapping("/addProducts")
+    fun create(
+        @Valid @ModelAttribute form: CreateProductForm,
+        result: BindingResult,
+        model: Model,
+        response: HttpServletResponse
+    ): String {
+        if (result.hasErrors()) {
+            model.addAttribute("errors", result)
+            model.addAttribute("form", form)
+            return "products/_form :: create_form"
+        }
+
+        productService.addProduct(form)
+
+        val rows = productService.listFirstPage(10)
+
+        model.addAttribute("items", rows)
+        response.setHeader("HX-Retarget", "#products")
+        response.setHeader("HX-Reswap", "outerHTML")
+        response.setHeader("HX-Trigger", "product:created")
+        return "products/_tbody :: products_tbody"
+    }
+
+    // 变体行片段
     @GetMapping("/products/{productId}/variants")
     fun variantsPartial(@PathVariable productId: Long, model: Model): String {
         val rows = variantRepo.listByProductId(productId)
@@ -56,22 +95,6 @@ class ProductController(
         model.addAttribute("rows", rows)
         model.addAttribute("optionNames", optionNames)
         return "products/_variants :: variants_rows"
-    }
-
-    /**
-     * 删除：先删 variants，再删 product（我们当前没有 FK，需要手工保证一致性）
-     */
-    @DeleteMapping("/products/{productId}")
-    @ResponseBody
-    fun delete(@PathVariable productId: Long):
-
-            String {
-        variantRepo.deleteVariantsNotInProducts(listOf(productId), minGuard = 1) // 只删这个 productId 之外的不会动；我们单独执行：
-        // 单独写一个“按 productId 删除 variants”的方法更直接（见下方 repo 补充）
-        variantRepo.deleteByProductId(productId)
-        productRepo.deleteByProductId(productId)
-        log.info("Deleted product={} and its variants", productId)
-        return "" // 返回空串，htmx 会把目标元素置空（outerHTML）
     }
 }
 

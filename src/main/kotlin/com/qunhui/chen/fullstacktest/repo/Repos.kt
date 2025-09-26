@@ -120,33 +120,6 @@ class ProductRepo(
             .query { rs, _ -> rs.getLong(1) }
             .single()
 
-    fun listForView(limit: Int, search: String?): List<ProductListRow> =
-        jdbc.sql(SELECT_PRODUCTS_FOR_VIEW_SQL)
-            .param("limit", limit)
-            .param("search_pattern", if (search.isNullOrBlank()) "" else "%${search}%")
-            .query { rs, _ ->
-                val tags: List<String>? = rs.getArray("tags")?.let { arr ->
-                    @Suppress("UNCHECKED_CAST")
-                    (arr.array as Array<String>).toList()
-                }
-
-                ProductListRow(
-                    productId = rs.getLong("product_id"),
-                    title = rs.getString("title"),
-                    vendor = rs.getString("vendor"),
-                    minPrice = rs.getBigDecimal("min_price"),
-                    updatedAt = rs.getObject("updated_at", java.time.OffsetDateTime::class.java),
-                    imageUrl = rs.getString("image_url"),
-                    productType = rs.getString("product_type"),
-                    tags = tags
-                )
-            }.list()
-
-    fun deleteByProductId(productId: Long): Int =
-        jdbc.sql(DELETE_PRODUCT_BY_PRODUCT_ID_SQL)
-            .param("pid", productId)
-            .update()
-
     // 将 List<String> 转成 PG 的 text[] 字面量：{"a","b"}；空/Null 返回 null
     private fun toPgTextArrayLiteral(values: List<String>?): String? {
         if (values == null) return null
@@ -182,11 +155,6 @@ class VariantRepo(private val jdbc: JdbcClient) {
                     imageUrl = rs.getString("image_url")
                 )
             }.list()
-
-    fun deleteByProductId(productId: Long): Int =
-        jdbc.sql(DELETE_VARIANTS_BY_PRODUCT_ID_SQL)
-            .param("pid", productId)
-            .update()
 
     fun upsert(cmd: VariantUpsertCmd): Int =
         jdbc.sql(UPSERT_VARIANT_SQL)

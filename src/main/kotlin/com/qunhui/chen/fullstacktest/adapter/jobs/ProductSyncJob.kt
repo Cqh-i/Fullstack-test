@@ -1,6 +1,6 @@
 package com.qunhui.chen.fullstacktest.adapter.jobs
 
-import com.qunhui.chen.fullstacktest.service.ProductSyncService
+import com.qunhui.chen.fullstacktest.service.product.ProductSyncService
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -21,7 +21,6 @@ class ProductSyncJob(
         try {
             productSyncService.sync()
         } catch (e: Exception) {
-            // 避免异常冒泡导致调度器中断
             log.error("Scheduled sync failed", e)
         }
     }

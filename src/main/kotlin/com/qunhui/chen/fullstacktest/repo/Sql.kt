@@ -80,34 +80,3 @@ internal const val COUNT_PRODUCTS_FOR_VIEW_SQL = """
 SELECT COUNT(*) FROM products p
 WHERE (:search_pattern = '' OR p.title ILIKE :search_pattern)
 """
-
-
-
-internal const val SELECT_PRODUCTS_FOR_VIEW_SQL = """
-SELECT
-  p.product_id AS product_id,
-  p.title      AS title,
-  p.vendor     AS vendor,
-  p.product_type,
-  p.tags,  
-  COALESCE(p.updated_at, p.created_at) AS updated_at,
-  (SELECT MIN(v.price) FROM variants v
-     WHERE v.product_id = p.product_id AND v.price IS NOT NULL) AS min_price,
-  (SELECT v2.image_url FROM variants v2
-     WHERE v2.product_id = p.product_id AND v2.image_url IS NOT NULL
-     ORDER BY v2.available DESC NULLS LAST, v2.position NULLS LAST
-     LIMIT 1) AS image_url
-FROM products p
-WHERE (:search_pattern = '' OR p.title ILIKE :search_pattern)
-ORDER BY COALESCE(p.updated_at, p.created_at) DESC NULLS LAST
-LIMIT :limit
-"""
-
-
-internal const val DELETE_PRODUCT_BY_PRODUCT_ID_SQL = """
-DELETE FROM products WHERE product_id = :pid
-"""
-
-internal const val DELETE_VARIANTS_BY_PRODUCT_ID_SQL = """
-DELETE FROM variants WHERE product_id = :pid
-"""
