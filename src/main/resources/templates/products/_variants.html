@@ -51,7 +51,7 @@
                 <!-- 收起按钮（Web Awesome） -->
                 <div style="margin-top:8px">
                     <wa-button variant="neutral"
-                               th:attr="onclick=|document.getElementById('variants-${productId}').remove()|">
+                               th:attr="onclick=|(()=>{const row=document.getElementById('variants-${productId}'); if(row) row.remove(); const btn=document.querySelector('.toggle-variants[data-pid=&quot;${productId}&quot;]'); if(btn){ btn.dataset.opened='false'; btn.textContent='Display variants'; }})()|">
                         Hide
                     </wa-button>
                 </div>
