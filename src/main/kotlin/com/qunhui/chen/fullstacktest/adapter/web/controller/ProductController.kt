@@ -75,6 +75,15 @@ class ProductController(
             return "products/_form :: create_form"
         }
 
+        // 2) 前置检测：productId 是否已存在
+        if (productService.existsByProductId(form.productId)) {
+            result.rejectValue("productId", "duplicate", "该 Product ID 已存在")
+            model.addAttribute("errors", result)
+            model.addAttribute("form", form)
+            response.status = 422
+            return "products/_form :: create_form"
+        }
+
         productService.addProduct(form)
 
         val rows = productService.listFirstPage(10)

@@ -69,6 +69,9 @@ class ProductService(
         }
     }
 
+    fun existsByProductId(productId: Long): Boolean =
+        productRepo.existsByProductId(productId)
+
     /**
      * 简化的首屏查询（保持与旧控制器一致的行为）
      */

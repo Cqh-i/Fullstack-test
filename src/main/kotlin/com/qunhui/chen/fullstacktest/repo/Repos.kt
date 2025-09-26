@@ -69,6 +69,18 @@ class ProductRepo(
             .take(3)
     }
 
+    fun existsByProductId(productId: Long): Boolean {
+        return jdbc.sql("""
+            select exists(
+              select 1 from products
+              where product_id = :productId
+            )
+        """.trimIndent())
+            .param("productId", productId)
+            .query(Boolean::class.java)
+            .single() ?: false
+    }
+
     fun upsert(cmd: ProductUpsertCmd): Int =
         jdbc.sql(UPSERT_PRODUCT_SQL)
             .param("pid", cmd.productId)
