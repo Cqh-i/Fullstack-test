@@ -105,5 +105,8 @@ class ProductController(
         model.addAttribute("optionNames", optionNames)
         return "products/_variants :: variants_rows"
     }
-}
 
+    // 新增：搜索页（带搜索框与主动搜索）
+    @GetMapping("/products/search")
+    fun searchPage(model: Model): String = "products/search"
+}

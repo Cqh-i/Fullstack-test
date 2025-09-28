@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Search Products</title>
+    <link rel="stylesheet" href="https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/styles/webawesome.css" />
+    <script type="module" src="https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/webawesome.loader.js"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.0"></script>
+
+    <style>
+        body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; margin: 24px; }
+        .page-wrap { width: 80%; margin: 24px auto; }
+        .row { display: flex; gap: var(--wa-space-m); align-items: center; flex-wrap: wrap; }
+        .muted { color: var(--wa-color-neutral-60); font-size: var(--wa-font-size-s); }
+
+        table { width: 100%; border-collapse: collapse; margin-top: var(--wa-space-s); }
+        th, td { border-bottom: 1px solid var(--wa-color-neutral-90); padding: var(--wa-space-xs) var(--wa-space-s); text-align: left; vertical-align: top; }
+        thead th { background: var(--wa-color-neutral-95); }
+        img.thumb { width: 64px; height: 64px; object-fit: cover; border-radius: var(--wa-border-radius-m); border: 1px solid var(--wa-color-neutral-90); }
+        .indicator[hidden] { display: none; }
+
+        .wa-pagination { display:flex; gap: var(--wa-space-s); align-items:center; flex-wrap:wrap; margin-top: var(--wa-space-m); }
+        .wa-page { padding: 4px 10px; border:1px solid var(--wa-color-neutral-80); border-radius: var(--wa-border-radius-m); text-decoration:none; cursor:pointer; color: inherit; }
+        .wa-page.wa-active { background: var(--wa-color-brand-60); color:#fff; border-color: var(--wa-color-brand-60); }
+        .wa-page.wa-disabled { opacity:.5; pointer-events:none; }
+        .wa-ellipsis { padding:0 4px; color: var(--wa-color-neutral-60); }
+        .pager-wrap { display:flex; justify-content:center; margin-top: var(--wa-space-s); }
+
+        .tags-wrap wa-badge { margin-right: var(--wa-space-xs); margin-bottom: var(--wa-space-2xs); }
+        .tag-pill { display:inline-block; padding:2px 8px; margin:2px 6px 2px 0; font-size:12px; line-height:18px; border-radius:9999px; background: var(--wa-color-neutral-95); color: var(--wa-color-neutral-10); border:1px solid var(--wa-color-neutral-90); white-space:nowrap; }
+    </style>
+</head>
+<body>
+<div class="page-wrap">
+    <h2 style="margin:0 0 8px 0">Search Products</h2>
+
+    <div class="row" role="search">
+        <wa-input id="search-input" placeholder="Type product title to search…" clearable>
+            <wa-icon name="search" slot="prefix"></wa-icon>
+        </wa-input>
+        <span id="spinner" class="indicator muted" hidden>Loading…</span>
+        <span class="muted">开始输入以搜索产品标题；结果将自动更新。</span>
+    </div>
+
+    <table aria-label="Products">
+        <thead>
+        <tr>
+            <th style="width:160px">Product&nbsp;ID</th>
+            <th style="width:160px">Title</th>
+            <th style="width:160px">Vendor</th>
+            <th style="width:160px">Product Type</th>
+            <th style="width:160px">Tags</th>
+            <th style="width:120px">Min&nbsp;Price</th>
+            <th style="width:160px">Updated</th>
+            <th style="width:96px">Image</th>
+            <th style="width:160px">Action</th>
+        </tr>
+        </thead>
+        <tbody id="products">
+        <tr>
+            <td colspan="9" class="muted">开始输入以搜索产品。</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="pager-wrap">
+        <nav id="pager" class="wa-pagination muted" aria-label="Pagination"></nav>
+    </div>
+</div>
+
+<script>
+    // 等待 wa-input 注册后绑定输入事件（主动搜索，300ms 节流）
+    (function () {
+        const doSearch = (q) => {
+            const url = '/products?search=' + encodeURIComponent(q || '') + '&page=1&size=10';
+            htmx.ajax('GET', url, { target: '#products', swap: 'outerHTML', indicator: '#spinner' });
+        };
+
+        const bind = () => {
+            const el = document.getElementById('search-input');
+            if (!el) return;
+
+            let timer = 0;
+            const schedule = () => {
+                clearTimeout(timer);
+                timer = setTimeout(() => doSearch(el.value || ''), 300);
+            };
+
+            // 尽量兼容：多数 Web Components 会转发 input/change
+            el.addEventListener('input', schedule);
+            el.addEventListener('change', schedule);
+            // 若支持清空事件（命名可能不同），也触发一次
+            el.addEventListener('wa-clear', () => doSearch(''));
+
+            // 初始加载一次（空搜索 -> 首页）
+            doSearch('');
+        };
+
+        if (customElements && customElements.whenDefined) {
+            customElements.whenDefined('wa-input').then(bind);
+        } else {
+            // 兜底
+            window.addEventListener('DOMContentLoaded', bind);
+        }
+    })();
+
+    // 统一错误提示
+    document.body.addEventListener('htmx:responseError', (e) => {
+        alert('Request failed: ' + e.detail.xhr.status);
+    });
+
+    // 与首页一致：处理“变体展开/收起”按钮，避免重复请求
+    (function () {
+        const isToggler = (el) => el instanceof Element && el.classList.contains('toggle-variants');
+        document.addEventListener('click', function (e) {
+            const path = (typeof e.composedPath === 'function') ? e.composedPath() : [];
+            let btn = path.find((n) => isToggler(n));
+            if (!btn && e.target && e.target.closest) btn = e.target.closest('.toggle-variants');
+            if (!btn) return;
+
+            if (btn.dataset.opened === 'true') {
+                const row = document.getElementById('variants-' + btn.dataset.pid);
+                if (row) row.remove();
+                btn.dataset.opened = 'false';
+                btn.textContent = 'Display variants';
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+            }
+        }, true);
+
+        document.body.addEventListener('htmx:afterRequest', function (e) {
+            const el = e.target;
+            if (!isToggler(el)) return;
+            const xhr = e.detail && e.detail.xhr;
+            if (xhr && xhr.status >= 200 && xhr.status < 400) {
+                el.dataset.opened = 'true';
+                el.textContent = 'Hide variants';
+            }
+        });
+    })();
+</script>
+</body>
+</html>
+
