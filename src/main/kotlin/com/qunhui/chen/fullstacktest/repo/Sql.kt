@@ -80,3 +80,13 @@ internal const val COUNT_PRODUCTS_FOR_VIEW_SQL = """
 SELECT COUNT(*) FROM products p
 WHERE (:search_pattern = '' OR p.title ILIKE :search_pattern)
 """
+
+internal const val DELETE_VARIANTS_BY_PRODUCT_SQL = """
+DELETE FROM variants
+WHERE product_id = :pid
+"""
+
+internal const val DELETE_PRODUCT_BY_ID_SQL = """
+DELETE FROM products
+WHERE product_id = :pid
+"""

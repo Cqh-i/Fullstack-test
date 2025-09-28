@@ -171,6 +171,11 @@ class ProductRepo(
             }
             .optional()
             .orElse(null)
+
+    fun deleteByProductId(productId: Long): Int =
+        jdbc.sql(DELETE_PRODUCT_BY_ID_SQL)
+            .param("pid", productId)
+            .update()
 }
 
 @Repository
@@ -220,4 +225,9 @@ class VariantRepo(private val jdbc: JdbcClient) {
             .param("ids", keepProductIds)
             .update()
     }
+
+    fun deleteByProductId(productId: Long): Int =
+        jdbc.sql(DELETE_VARIANTS_BY_PRODUCT_SQL)
+            .param("pid", productId)
+            .update()
 }

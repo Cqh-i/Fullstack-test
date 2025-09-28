@@ -111,6 +111,13 @@ class ProductService(
         }
     }
 
+    fun deleteProduct(productId: Long) {
+        txTemplate.executeWithoutResult {
+            variantRepo.deleteByProductId(productId)
+            productRepo.deleteByProductId(productId)
+        }
+    }
+
     fun existsByProductId(productId: Long): Boolean =
         productRepo.existsByProductId(productId)
 

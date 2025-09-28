@@ -160,4 +160,38 @@ class ProductController(
         model.addAttribute("tagsJoined", tagsJoined ?: "")
         return "products/edit :: edit_form"
     }
+
+    // 新增：删除产品（含变体）
+    @DeleteMapping("/products/{productId}")
+    fun deleteProduct(
+        @PathVariable productId: Long,
+        @RequestParam(name = "search", required = false) search: String?,
+        @RequestParam(defaultValue = "1") page: Int,
+        @RequestParam(defaultValue = "10") size: Int,
+        model: Model,
+        response: HttpServletResponse
+    ): String {
+        // 删除产品及其变体（事务内）
+        productService.deleteProduct(productId)
+
+        // 重新计算分页并返回最新表格片段
+        val total = productRepo.countForView(search)
+        val totalPages = if (total == 0L) 1 else ((total + size - 1) / size).toInt()
+        val p = page.coerceIn(1, totalPages)
+        val offset = (p - 1) * size
+        val items = productRepo.listForViewPaged(limit = size, offset = offset, search = search)
+
+        model.addAttribute("items", items)
+        model.addAttribute("page", p)
+        model.addAttribute("size", size)
+        model.addAttribute("total", total)
+        model.addAttribute("totalPages", totalPages)
+        model.addAttribute("search", search)
+
+        response.setHeader("HX-Retarget", "#products")
+        response.setHeader("HX-Reswap", "outerHTML")
+        response.setHeader("HX-Trigger", "product:deleted")
+
+        return "products/_tbody :: products_tbody"
+    }
 }

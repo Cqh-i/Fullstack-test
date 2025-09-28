@@ -147,6 +147,25 @@
         </div>
     </wa-dialog>
 
+    <!-- 新增：删除确认弹窗 -->
+    <wa-dialog id="confirm-delete-modal" size="sm" aria-label="Confirm delete">
+        <div class="modal-success" role="alertdialog" aria-describedby="confirm-delete-desc">
+            <div class="icon-wrap">!</div>
+            <div class="headline">确认删除产品</div>
+            <div id="confirm-delete-desc" class="body">
+                此操作将删除该产品及其所有变体，且不可撤销。<br/>
+                产品ID：<strong id="del-id"></strong><br/>
+                标题：<strong id="del-title"></strong>
+            </div>
+            <div class="actions">
+                <wa-button variant="neutral" data-dialog="close">取消</wa-button>
+                <wa-button id="confirm-delete-btn" variant="danger" data-dialog="close">
+                    删除
+                </wa-button>
+            </div>
+        </div>
+    </wa-dialog>
+
     <script>
         // 当 #products 被 htmx 替换（首次加载/后续刷新）后，展示“Add product”表单
         (function () {
@@ -237,6 +256,85 @@
                     if (dlg) dlg.open = true;
                 }
             });
+        })();
+
+        // ④ 打开“删除确认”对话框并配置删除请求（改为使用 htmx.ajax 触发 DELETE）
+        (function () {
+            const dlg = document.getElementById('confirm-delete-modal');
+            const confirmBtn = document.getElementById('confirm-delete-btn');
+            const elId = document.getElementById('del-id');
+            const elTitle = document.getElementById('del-title');
+
+            const findDeleteBtn = (event) => {
+                const path = (typeof event.composedPath === 'function') ? event.composedPath() : [];
+                const fromPath = path.find((n) => n instanceof Element && n.classList && n.classList.contains('btn-delete'));
+                if (fromPath) return fromPath;
+                return event.target && event.target.closest ? event.target.closest('.btn-delete') : null;
+            };
+
+            // 点击列表中的“Delete”按钮 → 填充对话框文案与参数，打开弹窗
+            document.body.addEventListener('click', function (e) {
+                const btn = findDeleteBtn(e);
+                if (!btn) return;
+
+                const productId = btn.dataset.pid;
+                const title = btn.dataset.title || '';
+                const page = btn.dataset.page || '1';
+                const size = btn.dataset.size || '10';
+                const search = btn.dataset.search;
+
+                if (elId) elId.textContent = productId;
+                if (elTitle) elTitle.textContent = title;
+
+                // 保存到确认按钮的 dataset，供确认时使用
+                if (confirmBtn) {
+                    confirmBtn.dataset.url = `/products/${productId}`;
+                    confirmBtn.dataset.page = page;
+                    confirmBtn.dataset.size = size;
+                    if (search) confirmBtn.dataset.search = search; else delete confirmBtn.dataset.search;
+                }
+
+                if (dlg) dlg.open = true;
+            });
+
+            // 只绑定一次：点击“删除”确认后，用 htmx.ajax 发起 DELETE，并局部刷新 #products
+            if (!window.__bindConfirmDeleteOnce) {
+                window.__bindConfirmDeleteOnce = true;
+
+                confirmBtn?.addEventListener('click', function () {
+                    const baseUrl = confirmBtn.dataset.url;
+                    if (!baseUrl) return;
+
+                    const params = new URLSearchParams();
+                    if (confirmBtn.dataset.page) params.set('page', confirmBtn.dataset.page);
+                    if (confirmBtn.dataset.size) params.set('size', confirmBtn.dataset.size);
+                    if (confirmBtn.dataset.search) params.set('search', confirmBtn.dataset.search);
+
+                    const url = baseUrl + (params.toString() ? `?${params.toString()}` : '');
+
+                    // 禁用按钮，避免重复提交；关闭弹窗由 data-dialog="close" 处理
+                    confirmBtn.setAttribute('disabled', '');
+
+                    htmx.ajax('DELETE', url, {
+                        target: '#products',
+                        swap: 'outerHTML',
+                        indicator: '#spinner',
+                        source: confirmBtn
+                    });
+                });
+
+                // 请求完成或失败后恢复按钮可用
+                document.body.addEventListener('htmx:afterRequest', function (e) {
+                    if (e.detail && e.detail.elt === confirmBtn) {
+                        confirmBtn.removeAttribute('disabled');
+                    }
+                });
+                document.body.addEventListener('htmx:responseError', function (e) {
+                    if (e.detail && e.detail.elt === confirmBtn) {
+                        confirmBtn.removeAttribute('disabled');
+                    }
+                });
+            }
         })();
     </script>
 </div>

@@ -52,15 +52,28 @@
                          data-pid=${p.productId}
            ">Display variants
             </wa-button>
+
+            <!-- 删除按钮：不再访问 param.search -->
+            <wa-button class="btn-delete"
+                       variant="danger"
+                       th:attr="
+                         data-pid=${p.productId},
+                         data-title=${p.title},
+                         data-page=${page},
+                         data-size=${size},
+                         data-search=${search}
+                       ">
+                Delete
+            </wa-button>
         </td>
     </tr>
     </tbody>
 
-    <!-- OOB 更新分页 -->
+    <!-- OOB 更新分页：不再访问 param.search -->
     <nav id="pager" class="wa-pagination" hx-swap-oob="true" aria-label="Pagination"
          th:with="p=${page}?:1, s=${size}?:10, total=${total}?:0, tp=${totalPages}?:1,
                   start=${p > 3 ? p - 2 : 1}, end=${p + 2 < tp ? p + 2 : tp},
-                  q=${param.search != null ? param.search[0] : null}">
+                  q=${search}">
         <a class="wa-page" th:classappend="${p <= 1} ? ' wa-disabled' : ''"
            th:attr="hx-get=@{/products(page=${p-1},size=${s},search=${q})}, hx-target='#products', hx-swap='outerHTML', hx-indicator='#spinner'">Prev</a>
         <span class="wa-ellipsis" th:if="${start > 1}">…</span>
