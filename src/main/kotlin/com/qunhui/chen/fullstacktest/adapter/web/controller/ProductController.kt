@@ -11,6 +11,11 @@ import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.validation.BindingResult
 import org.springframework.web.bind.annotation.*
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import java.time.LocalDateTime
+import kotlin.reflect.KProperty1
+import kotlin.reflect.full.memberProperties
 
 /**
  * - GET   "/"                         → 首页
@@ -193,5 +198,89 @@ class ProductController(
         response.setHeader("HX-Trigger", "product:deleted")
 
         return "products/_tbody :: products_tbody"
+    }
+
+    // 新增：导出 CSV（不包含 variants）
+    @GetMapping("/products/export", produces = ["text/csv"])
+    fun exportProductsCsv(
+        @RequestParam(name = "search", required = false) search: String?,
+        response: HttpServletResponse
+    ) {
+        response.characterEncoding = "UTF-8"
+        response.contentType = "text/csv; charset=UTF-8"
+
+        val ts = java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now())
+        val filename = "products-$ts.csv"
+        val encoded = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20")
+        response.setHeader("Content-Disposition", "attachment; filename=\"$filename\"; filename*=UTF-8''$encoded")
+
+        val writer = response.writer
+        // 表头
+        writer.append("Product ID,Title,Vendor,Product Type,Tags,Min Price,Updated").append('\n')
+
+        val total = productRepo.countForView(search)
+        val pageSize = 1000
+        var offset = 0
+        while (offset < total) {
+            val items = productRepo.listForViewPaged(limit = pageSize, offset = offset, search = search)
+            if (items.isEmpty()) break
+            for (item in items) {
+                fun read(vararg names: String): Any? = names.asSequence().map { readProp(item, it) }.firstOrNull { it != null }
+
+                val productId = read("productId", "externalId", "pid")
+                val title = read("title", "name")
+                val vendor = read("vendor", "brand")
+                val productType = read("productType", "type")
+                val tags = read("tags")
+                val minPrice = read("minPrice", "priceMin", "lowestPrice")
+                val updated = read("updatedAt", "updated", "modifiedAt", "lastUpdatedAt")
+
+                writer
+                    .append(toCsvCell(productId)).append(',')
+                    .append(toCsvCell(title)).append(',')
+                    .append(toCsvCell(vendor)).append(',')
+                    .append(toCsvCell(productType)).append(',')
+                    .append(toCsvCell(tags)).append(',')
+                    .append(toCsvCell(minPrice)).append(',')
+                    .append(toCsvCell(updated)).append('\n')
+            }
+            writer.flush()
+            offset += items.size
+        }
+    }
+
+    // 读取对象或 Map 的属性（安全兜底）
+    private fun readProp(bean: Any?, name: String): Any? {
+        if (bean == null) return null
+        if (bean is Map<*, *>) return bean[name]
+        return try {
+            @Suppress("UNCHECKED_CAST")
+            (bean::class.memberProperties.firstOrNull { it.name == name } as? KProperty1<Any, *>)?.get(bean)
+        } catch (_: Exception) {
+            try {
+                val cls = bean.javaClass
+                val getterName = "get" + name.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                val m = cls.methods.firstOrNull { it.parameterCount == 0 && (it.name == name || it.name == getterName) }
+                m?.invoke(bean)
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+
+    // 转为 CSV 单元格并转义
+    private fun toCsvCell(v: Any?): String {
+        val raw = when (v) {
+            null -> ""
+            is Iterable<*> -> v.filterNotNull().joinToString(";")
+            is Array<*> -> v.filterNotNull().joinToString(";")
+            is java.math.BigDecimal -> v.stripTrailingZeros().toPlainString()
+            is java.time.Instant -> java.time.OffsetDateTime.ofInstant(v, java.time.ZoneOffset.UTC).toString()
+            is java.time.LocalDateTime -> v.atOffset(java.time.ZoneOffset.UTC).toString()
+            is java.time.ZonedDateTime -> v.toOffsetDateTime().toString()
+            else -> v.toString()
+        }
+        val escaped = raw.replace("\"", "\"\"")
+        return "\"$escaped\""
     }
 }

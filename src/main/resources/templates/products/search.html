@@ -38,6 +38,10 @@
         <wa-input id="search-input" placeholder="Type product title to search…" clearable>
             <wa-icon name="search" slot="prefix"></wa-icon>
         </wa-input>
+        <wa-button id="export-btn" variant="brand">
+            <wa-icon name="download" slot="prefix"></wa-icon>
+            Export CSV
+        </wa-button>
         <span id="spinner" class="indicator muted" hidden>Loading…</span>
         <span class="muted">开始输入以搜索产品标题；结果将自动更新。</span>
     </div>
@@ -86,11 +90,19 @@
                 timer = setTimeout(() => doSearch(el.value || ''), 300);
             };
 
-            // 尽量兼容：多数 Web Components 会转发 input/change
             el.addEventListener('input', schedule);
             el.addEventListener('change', schedule);
-            // 若支持清空事件（命名可能不同），也触发一次
             el.addEventListener('wa-clear', () => doSearch(''));
+
+            // 导出按钮：使用当前搜索词导出
+            const exportBtn = document.getElementById('export-btn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', () => {
+                    const q = (el && 'value' in el) ? el.value : '';
+                    const url = '/products/export?search=' + encodeURIComponent(q || '');
+                    window.location.href = url;
+                });
+            }
 
             // 初始加载一次（空搜索 -> 首页）
             doSearch('');
@@ -142,4 +154,3 @@
 </script>
 </body>
 </html>
-
