@@ -39,6 +39,15 @@ data class VariantUpsertCmd(
 
 data class OptionDef(val name: String?, val position: Int?)
 
+// 新增：编辑页需要的产品详情
+data class ProductDetailRow(
+    val productId: Long,
+    val title: String,
+    val vendor: String?,
+    val productType: String?,
+    val tags: List<String>?
+)
+
 @Repository
 class ProductRepo(
     private val jdbc: JdbcClient,
@@ -139,6 +148,29 @@ class ProductRepo(
         val escaped = values.joinToString(",") { "\"${it.replace("\"", "\\\"")}\"" }
         return "{$escaped}"
     }
+
+    fun findById(productId: Long): ProductDetailRow? =
+        jdbc.sql("""
+            SELECT product_id, title, vendor, product_type, tags
+            FROM products
+            WHERE product_id = :pid
+        """.trimIndent())
+            .param("pid", productId)
+            .query { rs, _ ->
+                val tags: List<String>? = rs.getArray("tags")?.let { arr ->
+                    @Suppress("UNCHECKED_CAST")
+                    (arr.array as Array<String>).toList()
+                }
+                ProductDetailRow(
+                    productId = rs.getLong("product_id"),
+                    title = rs.getString("title"),
+                    vendor = rs.getString("vendor"),
+                    productType = rs.getString("product_type"),
+                    tags = tags
+                )
+            }
+            .optional()
+            .orElse(null)
 }
 
 @Repository

@@ -7,7 +7,10 @@
     </tr>
 
     <tr th:each="p : ${items}" th:id="|row-${p.productId}|">
-        <td th:text="${p.productId}">ProductId</td>
+        <td>
+            <!-- 新增：跳转到更新页面 -->
+            <a th:href="@{/products/{id}/edit(id=${p.productId})}" th:text="${p.productId}" class="wa-link">ProductId</a>
+        </td>
         <td>
             <div class="row" style="gap:8px; align-items:center">
                 <div th:text="${p.title}">Title</div>

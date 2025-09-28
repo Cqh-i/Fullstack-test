@@ -1,6 +1,7 @@
 package com.qunhui.chen.fullstacktest.adapter.web.controller;
 
 import com.qunhui.chen.fullstacktest.adapter.web.domain.CreateProductForm
+import com.qunhui.chen.fullstacktest.adapter.web.domain.UpdateProductForm
 import com.qunhui.chen.fullstacktest.repo.ProductRepo
 import com.qunhui.chen.fullstacktest.repo.VariantRepo
 import com.qunhui.chen.fullstacktest.service.product.ProductService
@@ -109,4 +110,54 @@ class ProductController(
     // 新增：搜索页（带搜索框与主动搜索）
     @GetMapping("/products/search")
     fun searchPage(model: Model): String = "products/search"
+
+    // 新增：编辑页
+    @GetMapping("/products/{productId}/edit")
+    fun editPage(@PathVariable productId: Long, model: Model, response: HttpServletResponse): String {
+        val product = productRepo.findById(productId)
+            ?: run {
+                response.status = 404
+                return "errors/404"
+            }
+        val variants = variantRepo.listByProductId(productId)
+        val optionNames = productRepo.loadOptionNames(productId)
+
+        val tagsJoined = product.tags?.joinToString(", ")
+
+        model.addAttribute("product", product)
+        model.addAttribute("variants", variants)
+        model.addAttribute("optionNames", optionNames)
+        model.addAttribute("tagsJoined", tagsJoined ?: "")
+
+        return "products/edit"
+    }
+
+    // 新增：提交更新（HTMX 局部刷新）
+    @PostMapping("/products/{productId}/update")
+    fun updateProduct(
+        @PathVariable productId: Long,
+        @ModelAttribute form: UpdateProductForm,
+        model: Model,
+        response: HttpServletResponse
+    ): String {
+        if (form.productId != productId) {
+            response.status = 400
+            model.addAttribute("error", "Path productId 与表单不一致")
+        } else {
+            productService.updateProduct(form)
+            response.setHeader("HX-Trigger", "product:updated")
+        }
+
+        // 重新加载最新数据以回显
+        val product = productRepo.findById(productId)
+        val variants = variantRepo.listByProductId(productId)
+        val optionNames = productRepo.loadOptionNames(productId)
+        val tagsJoined = product?.tags?.joinToString(", ")
+
+        model.addAttribute("product", product)
+        model.addAttribute("variants", variants)
+        model.addAttribute("optionNames", optionNames)
+        model.addAttribute("tagsJoined", tagsJoined ?: "")
+        return "products/edit :: edit_form"
+    }
 }

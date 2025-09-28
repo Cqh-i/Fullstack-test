@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <title>Edit Product</title>
+    <link rel="stylesheet" href="https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/styles/webawesome.css" />
+    <script type="module" src="https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/webawesome.loader.js"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.0"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; margin: 24px; }
+        .page-wrap { width: 80%; margin: 24px auto; }
+        .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .muted { color: #6b7280; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th, td { border-bottom: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; vertical-align: top; }
+        thead th { background: #f8fafc; }
+        img.thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid #eee; }
+        .tag-pill { display:inline-block; padding:2px 8px; margin:2px 6px 2px 0; font-size:12px; line-height:18px; border-radius:9999px; background:#f1f5f9; color:#0f172a; border:1px solid #e2e8f0; white-space:nowrap; }
+        .banner { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; background: #f1f5f9; color:#0f172a; margin: 8px 0; }
+        .grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        @media (max-width: 920px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="page-wrap">
+    <div class="row" style="justify-content: space-between;">
+        <h2 style="margin:0">Edit Product <span class="muted" th:text="${product.productId}">-</span></h2>
+        <wa-button variant="neutral" th:attr="href=@{/}">Back</wa-button>
+    </div>
+
+    <div id="edit-form-wrap" th:fragment="edit_form">
+        <div class="banner" th:if="${error != null}" th:text="${error}">Error</div>
+        <div class="banner" th:if="${error == null}" hx-swap-oob="true" id="flash" hidden>Saved</div>
+
+        <form id="edit-product-form"
+              th:attr="hx-post=@{/products/{id}/update(id=${product.productId})}"
+              hx-target="#edit-form-wrap"
+              hx-swap="outerHTML">
+
+            <div class="grid">
+                <div>
+                    <label class="muted">Product ID</label>
+                    <wa-input name="productId" readonly th:attr="value=${product.productId}"></wa-input>
+                </div>
+                <div>
+                    <label class="muted">Title</label>
+                    <wa-input name="title" th:attr="value=${product.title}" required></wa-input>
+                </div>
+                <div>
+                    <label class="muted">Vendor</label>
+                    <wa-input name="vendor" th:attr="value=${product.vendor}"></wa-input>
+                </div>
+                <div>
+                    <label class="muted">Product Type</label>
+                    <wa-input name="productType" th:attr="value=${product.productType}"></wa-input>
+                </div>
+                <div>
+                    <label class="muted">Tags (comma separated)</label>
+                    <wa-input name="tagsText" th:attr="value=${tagsJoined}"></wa-input>
+                </div>
+            </div>
+
+            <div style="margin-top: 12px;">
+                <div class="muted" style="margin-bottom:6px">Option Names (up to 3)</div>
+                <div class="row">
+                    <wa-input name="optionNames[0]" placeholder="Option1 Name" th:attr="value=${optionNames.size()>=1 ? optionNames.get(0) : ''}"></wa-input>
+                    <wa-input name="optionNames[1]" placeholder="Option2 Name" th:attr="value=${optionNames.size()>=2 ? optionNames.get(1) : ''}"></wa-input>
+                    <wa-input name="optionNames[2]" placeholder="Option3 Name" th:attr="value=${optionNames.size()>=3 ? optionNames.get(2) : ''}"></wa-input>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                <tr>
+                    <th style="padding:6px 8px">Variant ID</th>
+                    <th style="padding:6px 8px" th:text="${optionNames.size()>=1 ? optionNames.get(0) : 'Option1'}">Option1</th>
+                    <th style="padding:6px 8px" th:text="${optionNames.size()>=2 ? optionNames.get(1) : 'Option2'}">Option2</th>
+                    <th style="padding:6px 8px" th:text="${optionNames.size()>=3 ? optionNames.get(2) : 'Option3'}">Option3</th>
+                    <th style="padding:6px 8px">SKU</th>
+                    <th style="padding:6px 8px">Price</th>
+                    <th style="padding:6px 8px">Compare At Price</th>
+                    <th style="padding:6px 8px">Available</th>
+                    <th style="padding:6px 8px">Image</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="v, itStat : ${variants}">
+                    <!-- 索引用于绑定 variants[i].* -->
+                    <td>
+                        <wa-input th:attr="name=|variants[${itStat.index}].variantId|" th:attrappend=" value=${v.variantId}" readonly></wa-input>
+                    </td>
+                    <td><wa-input th:attr="name=|variants[${itStat.index}].option1|" th:attrappend=" value=${v.option1}"></wa-input></td>
+                    <td><wa-input th:attr="name=|variants[${itStat.index}].option2|" th:attrappend=" value=${v.option2}"></wa-input></td>
+                    <td><wa-input th:attr="name=|variants[${itStat.index}].option3|" th:attrappend=" value=${v.option3}"></wa-input></td>
+                    <td><wa-input th:attr="name=|variants[${itStat.index}].sku|" th:attrappend=" value=${v.sku}"></wa-input></td>
+                    <td><wa-input type="number" step="0.01" th:attr="name=|variants[${itStat.index}].price|" th:attrappend=" value=${v.price}"></wa-input></td>
+                    <td><wa-input type="number" step="0.01" th:attr="name=|variants[${itStat.index}].comparePrice|" th:attrappend=" value=${v.comparePrice}"></wa-input></td>
+                    <td>
+                        <!-- wa-checkbox 是否为 form-associated 视库实现；这里同时落个隐藏域兜底 -->
+                        <input type="hidden" th:attr="name=|variants[${itStat.index}].available|" value="false"/>
+                        <wa-checkbox th:attr="name=|variants[${itStat.index}].available|" th:checked="${v.available}">Available</wa-checkbox>
+                    </td>
+                    <td>
+                        <wa-input th:attr="name=|variants[${itStat.index}].imageUrl|" th:attrappend=" value=${v.imageUrl}"></wa-input>
+                        <div class="muted" style="margin-top:4px">
+                            <img th:if="${v.imageUrl != null}" th:src="${v.imageUrl}" class="thumb" alt="img"/>
+                            <span class="muted" th:if="${v.imageUrl == null}">—</span>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <div class="row" style="margin-top:12px">
+                <wa-button variant="brand" type="submit">Save</wa-button>
+                <span class="muted">ProductID 与 VariantID 为只读，无法修改。</span>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+</html>
+
