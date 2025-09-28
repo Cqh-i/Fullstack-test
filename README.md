@@ -36,6 +36,12 @@
 
 ---
 
+## 📸 Screenshots
+![](docs/screenshots/Snipaste_2025-09-28_22-33-47.png)
+![](docs/screenshots/Snipaste_2025-09-28_22-34-20.png)
+![](docs/screenshots/Snipaste_2025-09-28_22-34-41.png)
+![](docs/screenshots/Snipaste_2025-09-28_22-34-55.png)
+
 ## 🗂️ Project structure
 
 ```
