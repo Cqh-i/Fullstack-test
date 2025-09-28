@@ -36,12 +36,6 @@
 
 ---
 
-## 📸 Screenshots
-![](docs/screenshots/Snipaste_2025-09-28_22-33-47.png)
-![](docs/screenshots/Snipaste_2025-09-28_22-34-20.png)
-![](docs/screenshots/Snipaste_2025-09-28_22-34-41.png)
-![](docs/screenshots/Snipaste_2025-09-28_22-34-55.png)
-
 ## 🗂️ Project structure
 
 ```
@@ -102,6 +96,14 @@ Use the IDE HTTP client file under `http/` to hit the import endpoint, or run th
 * **Smart swaps**: uses `HX-Retarget` and `HX-Reswap` headers to replace only `#products` or `#create-product-card` as needed.
 * **Client pre-validate**: light checks prevent bad posts; server validation remains the source of truth.
 * **Events for hooks**: emits `product:created`, `product:updated`, `product:deleted` to enable toasts or refreshes.
+
+---
+
+## 📸 Screenshots
+![](docs/screenshots/Snipaste_2025-09-28_22-33-47.png)
+![](docs/screenshots/Snipaste_2025-09-28_22-34-20.png)
+![](docs/screenshots/Snipaste_2025-09-28_22-34-41.png)
+![](docs/screenshots/Snipaste_2025-09-28_22-34-55.png)
 
 ---
 
